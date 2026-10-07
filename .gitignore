@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# Entorno y secretos — NUNCA versionar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+apps/api/openapi.json

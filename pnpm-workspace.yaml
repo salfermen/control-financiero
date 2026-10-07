@@ -1,0 +1,26 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+
+# Versiones exactas al agregar dependencias (§38) y respeto estricto de `engines`.
+saveExact: true
+engineStrict: true
+
+# pnpm 10 bloquea los scripts de instalación por defecto.
+# Solo se permiten los paquetes que los necesitan de verdad.
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - unrs-resolver
+
+# Telemetría de swagger-ui-dist: no se permite ejecutar su script.
+ignoredBuiltDependencies:
+  - '@scarf/scarf'
+
+# Advertencias de auditoría aceptadas de forma explícita (revisar en cada actualización).
+auditConfig:
+  ignoreGhsas:
+    # braces (alta) vía @next/eslint-plugin-next → fast-glob → micromatch. Solo afecta
+    # al linter en desarrollo con patrones controlados por nosotros; sin versión corregida.
+    - GHSA-vfj7-8cjw-p6xm

@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad:
+    name: Formato, lint, tipos, pruebas y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: finanzas
+          POSTGRES_PASSWORD: finanzas_ci
+          POSTGRES_DB: finanzas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finanzas -d finanzas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Credenciales efímeras del contenedor de CI: no son secretos reales.
+      TEST_DATABASE_URL: postgresql://finanzas:finanzas_ci@localhost:5432/finanzas_test
+      E2E_DATABASE_URL: postgresql://finanzas:finanzas_ci@localhost:5432/finanzas_e2e_test
+      IP_HASH_SECRET: ci-solo-para-pruebas-0123456789abcdef
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias (lockfile congelado)
+        run: pnpm install --frozen-lockfile
+
+      - name: Formato
+        run: pnpm format:check
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Pruebas unitarias
+        run: pnpm test
+
+      - name: El esquema y las migraciones no divergen
+        run: |
+          pnpm --filter @cf/db exec drizzle-kit generate --name ci_drift_check
+          if [ -n "$(git status --porcelain packages/db/migrations)" ]; then
+            echo "::error::El esquema cambió sin migración. Ejecuta 'pnpm db:new-migration' y versiona el resultado."
+            git status --porcelain packages/db/migrations
+            exit 1
+          fi
+
+      - name: Pruebas de integración (PostgreSQL real)
+        run: pnpm test:integration
+
+      - name: Crear base E2E
+        run: PGPASSWORD=finanzas_ci psql -h localhost -U finanzas -d finanzas_test -c "CREATE DATABASE finanzas_e2e_test"
+
+      - name: Instalar Chromium para Playwright
+        run: pnpm --filter @cf/e2e exec playwright install --with-deps chromium
+
+      - name: Pruebas end-to-end
+        run: pnpm --filter @cf/e2e test:e2e
+
+      - name: Reporte de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+
+  seguridad:
+    name: Dependencias y secretos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Auditoría de dependencias (altas y críticas)
+        run: pnpm audit --audit-level high
+
+      - name: Escaneo de secretos en el historial
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

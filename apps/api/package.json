@@ -1,0 +1,43 @@
+{
+  "name": "@cf/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "API REST (NestJS + Fastify) de la plataforma financiera personal.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "dev": "node ../../scripts/dev-node-service.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src test",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "openapi:export": "node dist/scripts/export-openapi.js"
+  },
+  "dependencies": {
+    "@cf/db": "workspace:*",
+    "@cf/domain": "workspace:*",
+    "@cf/shared": "workspace:*",
+    "@fastify/cookie": "11.1.2",
+    "@fastify/helmet": "13.1.1",
+    "@fastify/rate-limit": "11.2.0",
+    "@fastify/static": "10.1.5",
+    "@nestjs/common": "12.1.2",
+    "@nestjs/core": "12.1.2",
+    "@nestjs/platform-fastify": "12.1.2",
+    "@nestjs/swagger": "12.0.2",
+    "@node-rs/argon2": "2.2.2",
+    "drizzle-orm": "0.45.3",
+    "fastify": "5.12.5",
+    "pino": "10.4.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "12.1.2",
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.0.3",
+    "vitest": "5.0.3"
+  }
+}

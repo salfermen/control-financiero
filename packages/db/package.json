@@ -1,0 +1,48 @@
+{
+  "name": "@cf/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Esquema de base de datos, migraciones, cliente Drizzle y datos de referencia.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check",
+    "db:migrate": "node dist/cli.js migrate",
+    "db:seed": "node dist/cli.js seed",
+    "db:setup": "node dist/cli.js setup",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@cf/domain": "workspace:*",
+    "drizzle-orm": "0.45.3",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11",
+    "vitest": "5.0.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./package.json": "./package.json"
+  }
+}
