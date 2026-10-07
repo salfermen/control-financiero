@@ -1,0 +1,6 @@
+# Falsos positivos ya publicados en el historial de Git (formato: commit:archivo:regla:línea).
+# Son claves ficticias de pruebas, no secretos reales. En el código actual esas líneas
+# llevan `// gitleaks:allow`. Nunca añadas aquí un hallazgo que sea un secreto real:
+# si ocurre, rota el secreto de inmediato.
+b62a14247dc6f3b0c3f783d30b30b13b61b7bfd1:e2e/tests/auth.spec.ts:generic-api-key:3
+b62a14247dc6f3b0c3f783d30b30b13b61b7bfd1:apps/api/test/auth.int.test.ts:generic-api-key:105

@@ -102,7 +102,7 @@ describe('registro', () => {
     [{ password: 'corta' }, 'password'],
     [{ email: 'no-es-correo' }, 'email'],
     [{ displayName: '   ' }, 'displayName'],
-    [{ email: 'carolina@prueba.co', password: 'mi-clave-carolina-123' }, 'password'],
+    [{ email: 'carolina@prueba.co', password: 'mi-clave-carolina-123' }, 'password'], // gitleaks:allow (clave ficticia de prueba)
   ])('valida la entrada %j', async (overrides, field) => {
     const response = await ctx.app.inject({
       method: 'POST',

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const PASSWORD = 'frase-e2e-suficientemente-larga';
+const PASSWORD = 'frase-e2e-suficientemente-larga'; // gitleaks:allow (clave ficticia de prueba)
 const uniqueEmail = () => `e2e.${Date.now()}.${Math.random().toString(36).slice(2, 8)}@prueba.co`;
 
 test.describe('acceso', () => {

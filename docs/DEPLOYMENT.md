@@ -10,11 +10,11 @@
 
 Para probar el modo producción en local: `pnpm build`, luego `pnpm --filter @cf/api start`, `pnpm --filter @cf/worker start` y `pnpm --filter @cf/web start`.
 
-> El `docker-compose.yml` no pudo ejecutarse en el entorno donde se construyó el proyecto (sin Docker). La configuración es estándar; si algo falla al primer `pnpm db:up`, revisa que Docker Desktop esté iniciado y que `POSTGRES_PASSWORD` esté definida en `.env`.
+> Verificado en Windows con Docker Desktop. Si algo falla al primer `pnpm db:up`, revisa que Docker Desktop esté iniciado y que `POSTGRES_PASSWORD` esté definida en `.env`. Para ver el estado del contenedor: `docker ps --filter name=control-financiero`.
 
 ## Integración continua (configurada)
 
-`infrastructure/ci/github-actions-ci.yml` (moverlo a `.github/workflows/ci.yml` al crear el repositorio; ver README) se ejecuta en cada PR y en `main`: formato, build, lint, tipos, pruebas unitarias, control de desviación de migraciones, integración con PostgreSQL real, E2E con Playwright, auditoría de dependencias y escaneo de secretos. Se activa al subir el repositorio a GitHub.
+`.github/workflows/ci.yml` se ejecuta en cada pull request y en cada push a `main`: formato, build, lint, tipos, pruebas unitarias, control de desviación de migraciones, integración con PostgreSQL real, E2E con Playwright, auditoría de dependencias y escaneo de secretos (gitleaks; los falsos positivos de datos de prueba se gestionan como indica `CONTRIBUTING.md`).
 
 ## Producción (plan para F15)
 

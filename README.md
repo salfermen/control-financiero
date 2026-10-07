@@ -11,19 +11,19 @@ Las reglas de trabajo del proyecto están en [`AGENTS.md`](AGENTS.md) (instrucci
 
 ## Qué incluye hoy
 
-| Área                                                                             | Estado                                                                                 |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Monorepo pnpm + Turborepo, TypeScript estricto, ESLint, Prettier                 | Listo                                                                                  |
-| PostgreSQL + Drizzle: esquema, migraciones versionadas, datos de referencia      | Listo                                                                                  |
-| Libro único de movimientos con reglas de integridad en la base (sin API aún)     | Listo (API en F4)                                                                      |
-| API NestJS + Fastify: errores estándar, validación Zod, OpenAPI, health checks   | Listo                                                                                  |
-| Autenticación: registro, login (cookie o bearer), logout, bloqueo progresivo     | Listo                                                                                  |
-| Seguridad: Argon2id, sesiones opacas con hash, CSRF, CORS, rate limit, cabeceras | Listo                                                                                  |
-| Auditoría de solo inserción y logs estructurados sin secretos                    | Listo                                                                                  |
-| Worker pg-boss con limpieza diaria de sesiones                                   | Listo                                                                                  |
-| Web Next.js: ingresar, registro, inicio y cierre de sesión (claro/oscuro, móvil) | Listo (mínima)                                                                         |
-| Pruebas: unitarias, integración con PostgreSQL real y E2E con Playwright         | Listo                                                                                  |
-| CI de GitHub Actions                                                             | Listo en `infrastructure/ci/` (moverlo a `.github/workflows/` al crear el repositorio) |
+| Área                                                                             | Estado                             |
+| -------------------------------------------------------------------------------- | ---------------------------------- |
+| Monorepo pnpm + Turborepo, TypeScript estricto, ESLint, Prettier                 | Listo                              |
+| PostgreSQL + Drizzle: esquema, migraciones versionadas, datos de referencia      | Listo                              |
+| Libro único de movimientos con reglas de integridad en la base (sin API aún)     | Listo (API en F4)                  |
+| API NestJS + Fastify: errores estándar, validación Zod, OpenAPI, health checks   | Listo                              |
+| Autenticación: registro, login (cookie o bearer), logout, bloqueo progresivo     | Listo                              |
+| Seguridad: Argon2id, sesiones opacas con hash, CSRF, CORS, rate limit, cabeceras | Listo                              |
+| Auditoría de solo inserción y logs estructurados sin secretos                    | Listo                              |
+| Worker pg-boss con limpieza diaria de sesiones                                   | Listo                              |
+| Web Next.js: ingresar, registro, inicio y cierre de sesión (claro/oscuro, móvil) | Listo (mínima)                     |
+| Pruebas: unitarias, integración con PostgreSQL real y E2E con Playwright         | Listo                              |
+| CI de GitHub Actions                                                             | Listo (`.github/workflows/ci.yml`) |
 
 ## Requisitos (Windows, macOS o Linux)
 
@@ -74,14 +74,9 @@ Abre <http://localhost:3000>. La documentación interactiva de la API está en <
 
 La primera vez que corras `pnpm test:e2e`, instala el navegador: `pnpm --filter @cf/e2e exec playwright install chromium`.
 
-### Activar la CI en GitHub
+### Integración continua
 
-El flujo de CI está en `infrastructure/ci/github-actions-ci.yml` (las herramientas con las que se generó el proyecto no pueden escribir en `.github/`). Al crear el repositorio, muévelo una sola vez:
-
-```powershell
-New-Item -ItemType Directory -Force .github\workflows | Out-Null
-Move-Item infrastructure\ci\github-actions-ci.yml .github\workflows\ci.yml
-```
+`.github/workflows/ci.yml` se ejecuta en cada push a `main` y en cada pull request, con dos trabajos: **calidad** (formato, build, lint, tipos, pruebas unitarias, integración y E2E) y **seguridad** (auditoría de dependencias y escaneo de secretos con gitleaks). Si gitleaks marca un dato ficticio de una prueba, consulta [CONTRIBUTING](CONTRIBUTING.md#convenciones).
 
 ### Editor recomendado
 
@@ -99,7 +94,8 @@ packages/
   shared/     Contratos compartidos: esquemas Zod, DTOs, códigos de error
   db/         Esquema Drizzle, migraciones SQL, cliente, siembra
 e2e/          Pruebas Playwright de flujos críticos
-infrastructure/  docker-compose de PostgreSQL local y flujo de CI
+infrastructure/  docker-compose de PostgreSQL local
+.github/      Flujo de CI (GitHub Actions)
 docs/         Documentación técnica
 ```
 

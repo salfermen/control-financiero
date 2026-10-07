@@ -29,4 +29,5 @@ Una funcionalidad está terminada cuando tiene, según corresponda: modelo de da
 - **Base de datos:** solo con migraciones (`pnpm db:new-migration`). Las reglas de integridad van también en la base (`CHECK`, FK, índices únicos).
 - **Rutas nuevas:** exigen sesión por defecto; `@Public()` solo con motivo.
 - **Dependencias:** justifica cada una (§38); versiones exactas (`saveExact` en `pnpm-workspace.yaml`).
+- **Secretos en pruebas:** solo datos ficticios. Si gitleaks marca uno, añade `// gitleaks:allow (clave ficticia de prueba)` al final de **esa línea**; nunca lo uses para un valor real ni para silenciar archivos enteros. Las huellas de commits ya publicados van en `.gitleaksignore`. Si un secreto real llega a Git, rótalo de inmediato: borrarlo del código no basta.
 - **Idioma:** código y nombres técnicos en inglés; mensajes al usuario y documentación en español.
