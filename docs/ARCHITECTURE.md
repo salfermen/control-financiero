@@ -41,15 +41,17 @@ Fuente única de los cálculos financieros (§9 y §58 de `AGENTS.md`). Es códi
 | `dates/`                             | Fechas contables `YYYY-MM-DD` sin zona horaria: calendario real (bisiestos), suma de días y meses con ajuste a fin de mes, rangos inclusivos, fecha local de un instante en una zona IANA.                     |
 | `ledger/entry`                       | `LedgerEntry` (mismos nombres que las columnas de `transactions`) y `assertValidLedgerEntry`, espejo de los `CHECK` de la base.                                                                                |
 | `ledger/amounts`                     | `prepareLedgerAmounts`: los tres montos (original, cuenta, base) y sus tasas listos para insertar; nunca inventa una tasa.                                                                                     |
-| `ledger/balance`                     | `computeAccountBalance(s)`: saldo inicial + movimientos, con asentados y pendientes por separado y conteo de lo excluido.                                                                                      |
-| `ledger/cash-flow`                   | `computeCashFlow`: ingresos, gastos, comisiones, reembolsos, neto, tasa de ahorro y desglose por categoría en moneda base.                                                                                     |
+| `ledger/balance`                     | `computeAccountBalance(s)`: saldo de hoy (asentado y pendiente) y, aparte, lo programado (fechas futuras, también el saldo inicial de una cuenta que empieza después) y lo que quedará; conteo de lo excluido. |
+| `ledger/cash-flow`                   | `computeCashFlow`: ingresos, gastos, comisiones, reembolsos, neto, tasa de ahorro y desglose por categoría en moneda base; con `asOf`, separa la parte programada del período.                                 |
+| `ledger/position`                    | `computeFinancialPosition`: disponible (cuentas líquidas), inversiones, deudas, activos y patrimonio, hoy y proyectados; convierte con la tasa de hoy y deja fuera, señaladas, las cuentas sin tasa confiable. |
+| `budgets/budget`                     | `computeBudgetStatuses`: gastado, programado, comprometido, restante, nivel de alerta (75/90/100 %) y ritmo estimado por presupuesto, con subcategorías; `sortBudgetStatuses` ordena de forma exacta.          |
 | `ledger/transfers`, `ledger/refunds` | Validación de las dos patas de una transferencia o pago, y de reembolsos contra el gasto original.                                                                                                             |
 
-Los errores son `DomainError` con un código estable (`CURRENCY_MISMATCH`, `MISSING_EXCHANGE_RATE`, `INVALID_LEDGER_ENTRY`…); desde F4 la API los traducirá a respuestas HTTP. Las reglas de negocio están en `docs/DECISIONS.md` (D8–D12).
+Los errores son `DomainError` con un código estable (`CURRENCY_MISMATCH`, `MISSING_EXCHANGE_RATE`, `INVALID_LEDGER_ENTRY`…); la API los traduce a respuestas HTTP. Las reglas de negocio están en `docs/DECISIONS.md` (D8–D20).
 
 ## Capas dentro de la API
 
-Cada dominio es un módulo Nest (`auth`, `users`, `reference`, `accounts`, `transactions`, `fx` y `cash-flow`; `finance` comparte el contexto del usuario —moneda base, zona y «hoy»— y los mapeos a DTO):
+Cada dominio es un módulo Nest (`auth`, `users`, `reference`, `accounts`, `transactions`, `fx`, `cash-flow`, `categories`, `budgets` y `summary`; `finance` comparte el contexto del usuario —moneda base, zona y «hoy»— y los mapeos a DTO). `summary` no calcula nada propio: reúne saldos, posición, flujo y presupuestos del motor para el tablero:
 
 1. **Controlador**: valida la entrada con el esquema Zod compartido (`ZodPipe`) y documenta el contrato en OpenAPI con el mismo esquema.
 2. **Servicio**: orquesta el caso de uso. Los cálculos los hace el Financial Engine (saldos, conversiones, reglas del libro, flujo de caja), nunca el servicio por su cuenta. Antes de escribir valida cada movimiento con el motor; la base lo vuelve a verificar con sus `CHECK`.
@@ -78,7 +80,7 @@ Regla de producto (§2 del prompt maestro): cada valor debe poder distinguirse c
 
 - App Router de Next.js 16, Tailwind 4 con tokens de color para modo claro y oscuro.
 - `app/api/v1/[...path]/route.ts` reenvía las llamadas del navegador a la API (misma URL de origen: la cookie es de primera parte). La dirección de la API se lee en tiempo de ejecución (`API_INTERNAL_URL`).
-- Pantallas con sesión en `app/(app)/`: Inicio (flujo del mes, TRM, cuentas), Cuentas (lista con saldo, crear, editar, cerrar, borrar) y Movimientos (mes, resumen, lista paginada, registrar gasto/ingreso/transferencia, corregir, reembolsar, eliminar).
+- Pantallas con sesión en `app/(app)/`: Inicio (tablero: disponible hoy, te queda a fin de mes, deudas, patrimonio, mes, presupuestos, próximos movimientos, TRM y cuentas), Cuentas (saldo de hoy y después de lo programado; crear, editar, cerrar, borrar), Movimientos (mes, resumen, lista paginada con marca «Programado», registrar, corregir, reembolsar, eliminar), Presupuestos (por mes: barras con gastado y programado, semáforo, crear, cambiar límite, quitar) y Categorías (sistema y propias: crear, renombrar, eliminar moviendo sus movimientos).
 - Los Server Components leen con `serverApi()` (`lib/server-api.ts`), que reenvía la cookie y valida la respuesta con el esquema compartido; `getSession()` usa `cache` para no repetir la consulta en la misma petición.
 - Los formularios escriben con `apiRequest()` y luego refrescan la ruta. Los montos se escriben como en Colombia («25.000», «59,99»); `parseAmountInput` del motor los normaliza y la pantalla muestra «Se registrará: …» antes de guardar.
 - Fechas contables mostradas con `formatDate` sobre las partes de la fecha en UTC: nunca se corren un día.
@@ -95,4 +97,4 @@ Integraciones en `src/integrations/`: cada proveedor implementa `ExchangeRatePro
 
 ## Qué no existe todavía
 
-Presupuestos, recurrencias, importación de extractos, conciliación de saldos (`account_balance_snapshots`) y el tablero v1 (F5); deudas, metas y patrimonio (F6), y todo lo posterior del plan. Tasas automáticas solo para USD/COP (TRM); otras monedas se registran con el valor cobrado o una tasa escrita por la persona. Ver la auditoría y `docs/DECISIONS.md`.
+Recurrencias, suscripciones y calendario (F5b); importación de extractos y conciliación de saldos con `account_balance_snapshots` (F5c); presupuestos semanales y anuales; deudas, metas e histórico de patrimonio (F6), y todo lo posterior del plan. Tasas automáticas solo para USD/COP (TRM); otras monedas se registran con el valor cobrado o una tasa escrita por la persona. Ver la auditoría y `docs/DECISIONS.md`.

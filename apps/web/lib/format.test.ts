@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatMonth, isNegative, isZero, money, signedMoney } from './format';
+import {
+  absMoney,
+  formatDate,
+  formatMonth,
+  isNegative,
+  isZero,
+  money,
+  signedMoney,
+} from './format';
 
 const plain = (text: string) => text.replace(/\s/g, ' ');
 
@@ -14,6 +22,7 @@ describe('formato en la web', () => {
     );
     expect(isNegative({ amount: '-1.0000', currency: 'COP' })).toBe(true);
     expect(isZero({ amount: '0.0000', currency: 'COP' })).toBe(true);
+    expect(plain(absMoney({ amount: '-12000.0000', currency: 'COP' }))).toBe('$ 12.000');
   });
 
   it('formatea fechas contables sin correrse de día', () => {

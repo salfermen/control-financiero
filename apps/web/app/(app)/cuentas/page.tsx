@@ -31,7 +31,7 @@ export default async function AccountsPage() {
     <>
       <PageHeader
         title="Cuentas"
-        description="Saldos calculados a hoy con tu saldo inicial y tus movimientos."
+        description="Saldo de hoy con tu saldo inicial y tus movimientos; aparte, lo que quedará después de lo programado (movimientos con fecha futura)."
         action={
           <Link href="/cuentas/nueva" className={linkButtonClass.primary}>
             Nueva cuenta
@@ -98,11 +98,7 @@ function AccountSection({
                 </div>
                 {account.status === 'closed' ? <Badge>Cerrada</Badge> : null}
               </div>
-              <p
-                className={`text-2xl font-semibold tabular-nums ${isNegative(account.balance.current) ? 'text-danger' : ''}`}
-              >
-                {money(account.balance.current, locale)}
-              </p>
+              <BalanceFigures account={account} locale={locale} />
               <div className="flex flex-col gap-1 text-xs text-text-muted">
                 {!isZero(account.balance.pending) ? (
                   <p>Incluye {money(account.balance.pending, locale)} en movimientos pendientes.</p>
@@ -131,5 +127,49 @@ function AccountSection({
         ))}
       </ul>
     </section>
+  );
+}
+
+/** Saldo de hoy y, si hay movimientos con fecha futura, lo que quedará después. */
+function BalanceFigures({ account, locale }: { account: AccountDto; locale: Locale }) {
+  const { balance } = account;
+  const liability = account.nature === 'liability';
+  const hasScheduled = balance.scheduledCount > 0 || balance.startsOn !== null;
+  return (
+    <dl className="grid grid-cols-2 gap-3">
+      <div>
+        <dt className="text-xs text-text-muted">{liability ? 'Debes hoy' : 'Hoy'}</dt>
+        {balance.startsOn ? (
+          <dd className="text-sm">
+            Empieza el {formatDate(balance.startsOn, locale)}
+            <span className="block text-xs text-text-muted">Hoy aún no tiene saldo.</span>
+          </dd>
+        ) : (
+          <dd
+            className={`text-2xl font-semibold tabular-nums ${isNegative(balance.current) ? 'text-danger' : ''}`}
+          >
+            {money(balance.current, locale)}
+          </dd>
+        )}
+      </div>
+      {hasScheduled ? (
+        <div>
+          <dt className="text-xs text-text-muted">
+            {liability ? 'Deberás después de lo programado' : 'Te queda después de lo programado'}
+          </dt>
+          <dd
+            className={`text-2xl font-semibold tabular-nums ${isNegative(balance.projected) ? 'text-danger' : 'text-accent'}`}
+          >
+            {money(balance.projected, locale)}
+          </dd>
+          <dd className="text-xs text-text-muted">
+            {balance.scheduledCount} movimiento(s) programado(s)
+            {balance.projectedThrough
+              ? ` hasta el ${formatDate(balance.projectedThrough, locale)}`
+              : ''}
+          </dd>
+        </div>
+      ) : null}
+    </dl>
   );
 }

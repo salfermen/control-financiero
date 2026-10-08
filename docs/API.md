@@ -65,10 +65,13 @@ Todas las respuestas de error tienen la misma forma:
 | POST   | `/api/v1/auth/logout`                               | Sesión  | Cierra la sesión actual.                                                                                                                            |
 | POST   | `/api/v1/auth/logout-all`                           | Sesión  | Cierra todas las sesiones del usuario.                                                                                                              |
 | GET    | `/api/v1/me`                                        | Sesión  | Perfil y ajustes.                                                                                                                                   |
-| PATCH  | `/api/v1/me/settings`                               | Sesión  | Moneda base, idioma, zona horaria, tema. La moneda base se bloquea si ya hay movimientos.                                                           |
+| PATCH  | `/api/v1/me/settings`                               | Sesión  | Moneda base, idioma, zona horaria, tema. La moneda base se bloquea si ya hay movimientos o presupuestos.                                            |
 | GET    | `/api/v1/currencies`                                | Público | Monedas soportadas.                                                                                                                                 |
 | GET    | `/api/v1/categories`                                | Sesión  | Categorías del sistema y del usuario, traducidas.                                                                                                   |
-| GET    | `/api/v1/accounts`                                  | Sesión  | Cuentas con su saldo a hoy (asentado, pendiente y actual), calculado por el Financial Engine.                                                       |
+| POST   | `/api/v1/categories`                                | Sesión  | Crea una categoría propia (`name`, `kind`, `parentId` opcional de una principal del mismo tipo). Nombre repetido → `CATEGORY_NAME_TAKEN`.           |
+| PATCH  | `/api/v1/categories/:id`                            | Sesión  | Renombra o reubica una categoría propia. Las del sistema → `FORBIDDEN`. El tipo no cambia.                                                          |
+| DELETE | `/api/v1/categories/:id?moveTo=`                    | Sesión  | Borrado lógico. Con movimientos exige `moveTo` (se reasignan); con subcategorías o presupuesto vigente → `CATEGORY_IN_USE`.                         |
+| GET    | `/api/v1/accounts`                                  | Sesión  | Cuentas con su saldo de hoy (asentado, pendiente, actual) y, aparte, lo programado (`scheduled`) y lo que quedará (`projected`).                    |
 | POST   | `/api/v1/accounts`                                  | Sesión  | Crea una cuenta con su saldo inicial y su fecha.                                                                                                    |
 | GET    | `/api/v1/accounts/:id`                              | Sesión  | Una cuenta con su saldo.                                                                                                                            |
 | PATCH  | `/api/v1/accounts/:id`                              | Sesión  | Nombre, entidad, saldo inicial, notas o estado (`closed` la cierra). Moneda y tipo no cambian.                                                      |
@@ -78,9 +81,26 @@ Todas las respuestas de error tienen la misma forma:
 | GET    | `/api/v1/transactions/:id`                          | Sesión  | Un movimiento con su conversión y procedencia.                                                                                                      |
 | PATCH  | `/api/v1/transactions/:id`                          | Sesión  | Corrige descripción, categoría, fecha, monto (sin cambio de moneda), comercio, notas o estado.                                                      |
 | DELETE | `/api/v1/transactions/:id`                          | Sesión  | Borrado lógico; una transferencia se borra con sus dos patas.                                                                                       |
-| GET    | `/api/v1/cash-flow?month=AAAA-MM`                   | Sesión  | Ingresos, gastos, reembolsos, neto, tasa de ahorro y desglose por categoría en la moneda base.                                                      |
+| GET    | `/api/v1/cash-flow?month=AAAA-MM`                   | Sesión  | Ingresos, gastos, reembolsos, neto, tasa de ahorro y desglose por categoría en la moneda base; `scheduled` = parte con fecha posterior a hoy.       |
+| GET    | `/api/v1/budgets?month=AAAA-MM`                     | Sesión  | Presupuestos vigentes en el mes: límite, gastado, programado, comprometido, restante, nivel (`ok`/`notice`/`warning`/`exceeded`) y ritmo estimado.  |
+| POST   | `/api/v1/budgets`                                   | Sesión  | Crea un presupuesto mensual global (`categoryId: null`) o de una categoría de gasto, desde `startMonth`. Solapado → `BUDGET_EXISTS`.                |
+| PATCH  | `/api/v1/budgets/:id`                               | Sesión  | Cambia el límite desde `fromMonth`; los meses anteriores conservan el suyo (se crea una versión nueva).                                             |
+| DELETE | `/api/v1/budgets/:id?fromMonth=`                    | Sesión  | Deja de presupuestar desde ese mes (cierra la versión) o la elimina si empieza ese mes.                                                             |
+| GET    | `/api/v1/summary`                                   | Sesión  | Tablero: disponible, inversiones, deudas y patrimonio (hoy y a fin de mes), flujo del mes, presupuestos y próximos movimientos.                     |
 | GET    | `/api/v1/exchange-rates/current?base=USD&quote=COP` | Sesión  | Tasa vigente con fuente, fecha, estado (`current`/`stale`/`missing`) y variación frente a la anterior.                                              |
 | GET    | `/api/v1/exchange-rates?base&quote&from&to`         | Sesión  | Histórico de tasas publicadas.                                                                                                                      |
+
+### Hoy y lo programado
+
+Un movimiento con fecha posterior a hoy (zona horaria del usuario) es **programado**: no cambia el saldo de hoy y se informa aparte.
+
+- En cada cuenta, `balance.current` es el saldo de hoy; `balance.scheduled`, el efecto neto de lo programado, y `balance.projected = current + scheduled` lo que quedará («te queda»), con `projectedThrough` (fecha del último movimiento programado).
+- Una cuenta cuyo saldo inicial tiene fecha futura (`startsOn`) no tiene saldo hoy (`current = 0`); su saldo inicial cuenta en `scheduled`.
+- `/summary` proyecta hasta fin de mes (`endOfMonth`) y cuenta aparte lo programado después (`scheduledAfterMonthEnd`). Las cuentas en otra moneda se convierten con la tasa de hoy; sin tasa confiable van a `unconverted` y no se suman.
+
+### Presupuestos
+
+Límite mensual en la moneda base, global o por categoría de gasto (incluye sus subcategorías). Gastado = gastos + comisiones − reembolsos (montos base del día de cada movimiento) con fecha hasta hoy; programado = los del mes con fecha posterior. El nivel de alerta usa lo comprometido (gastado + programado): 75 %, 90 % y 100 %. `pace` es una estimación al ritmo actual (desde el día 7 del período), no un hecho.
 
 ### Movimientos en otra moneda
 

@@ -273,7 +273,7 @@ export function AccountForm(props: Props) {
               Reabrir cuenta
             </Button>
           )}
-          {account.balance.transactionCount === 0 ? (
+          {account.balance.transactionCount + account.balance.scheduledCount === 0 ? (
             confirmDelete ? (
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm">¿Eliminar «{account.name}»? No se puede deshacer.</p>

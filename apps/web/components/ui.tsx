@@ -215,7 +215,7 @@ export function Badge({
   children,
   title,
 }: {
-  tone?: 'neutral' | 'warning' | 'accent';
+  tone?: 'neutral' | 'warning' | 'accent' | 'caution' | 'danger';
   children: ReactNode;
   title?: string;
 }) {
@@ -223,11 +223,13 @@ export function Badge({
     neutral: 'bg-surface-muted text-text-muted',
     warning: 'bg-warning-surface text-warning',
     accent: 'bg-accent-surface text-accent',
+    caution: 'bg-caution-surface text-caution',
+    danger: 'bg-danger-surface text-danger',
   };
   return (
     <span
       title={title}
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
     >
       {children}
     </span>

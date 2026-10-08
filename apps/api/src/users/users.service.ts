@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type DatabaseHandle, transactions, userSettings, users } from '@cf/db';
+import { type DatabaseHandle, budgets, transactions, userSettings, users } from '@cf/db';
 import type { UpdateSettingsRequest, UserDto } from '@cf/shared';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { AuditService } from '../audit/audit.service.js';
 import { AppError } from '../common/errors/app-error.js';
 import type { RequestContext } from '../common/request-context.js';
@@ -58,7 +58,13 @@ export class UsersService {
             .from(transactions)
             .where(eq(transactions.userId, userId))
             .limit(1);
-          if (existing) throw new AppError('BASE_CURRENCY_LOCKED');
+          // Los límites de presupuesto también están en la moneda base.
+          const [budget] = await tx
+            .select({ id: budgets.id })
+            .from(budgets)
+            .where(and(eq(budgets.userId, userId), isNull(budgets.deletedAt)))
+            .limit(1);
+          if (existing || budget) throw new AppError('BASE_CURRENCY_LOCKED');
         }
       }
 

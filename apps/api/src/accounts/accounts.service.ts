@@ -65,9 +65,7 @@ export class AccountsService {
     return rows.map((row) =>
       accountToDto(
         row,
-        computeAccountBalance(row, byAccount.get(row.id) ?? [], {
-          asOf: this.cutoff(row, context),
-        }),
+        computeAccountBalance(row, byAccount.get(row.id) ?? [], { asOf: context.today }),
       ),
     );
   }
@@ -226,17 +224,9 @@ export class AccountsService {
       .select()
       .from(transactions)
       .where(and(eq(transactions.accountId, row.id), isNull(transactions.deletedAt)));
-    return computeAccountBalance(row, entries, { asOf: this.cutoff(row, context) });
-  }
-
-  /**
-   * Fecha de corte: hoy en la zona del usuario. Si el saldo inicial tiene
-   * fecha futura, se usa esa fecha (no hay saldo antes del saldo inicial).
-   */
-  private cutoff(row: AccountRow, context: FinanceContext): string {
-    return compareLocalDates(row.openingBalanceDate, context.today) > 0
-      ? row.openingBalanceDate
-      : context.today;
+    // Saldo de hoy (zona del usuario) y, aparte, lo programado: movimientos con
+    // fecha futura y, si la cuenta empieza después, su saldo inicial.
+    return computeAccountBalance(row, entries, { asOf: context.today });
   }
 }
 

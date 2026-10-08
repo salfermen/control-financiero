@@ -287,7 +287,10 @@ describe('cálculos sobre filas reales', () => {
     expect(balance.posted.toAmountString()).toBe('2600000.0000');
     expect(balance.pending.toAmountString()).toBe('-50000.0000');
     expect(balance.current.toAmountString()).toBe('2550000.0000');
-    expect(balance.excluded).toMatchObject({ void: 1, afterAsOf: 1 });
+    expect(balance.excluded).toMatchObject({ void: 1, afterProjection: 0 });
+    // El del 1 de noviembre es programado: no toca el saldo de hoy.
+    expect(balance.counted.scheduled).toBe(1);
+    expect(balance.projected.toAmountString()).toBe('2540000.0000');
 
     const allRows = await handle.db
       .select()

@@ -17,7 +17,13 @@ export type AuditAction =
   | 'account_deleted'
   | 'transaction_created'
   | 'transaction_updated'
-  | 'transaction_deleted';
+  | 'transaction_deleted'
+  | 'category_created'
+  | 'category_updated'
+  | 'category_deleted'
+  | 'budget_created'
+  | 'budget_changed'
+  | 'budget_deleted';
 
 export interface AuditEntry {
   action: AuditAction;

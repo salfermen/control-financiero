@@ -1,5 +1,6 @@
 'use client';
 
+import { compareLocalDates } from '@cf/domain';
 import { type TransactionDto, type TransactionListDto, transactionListDtoSchema } from '@cf/shared';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -10,6 +11,8 @@ import { TRANSACTION_TYPE_LABELS, type Locale, formatDate, money, signedMoney } 
 
 interface Props {
   locale: Locale;
+  /** «Hoy» del usuario: los movimientos con fecha posterior se marcan como programados. */
+  today: string;
   initial: TransactionListDto;
   /** Filtros ya aplicados (from, to, accountId, limit). */
   query: string;
@@ -18,7 +21,7 @@ interface Props {
 }
 
 /** Lista de movimientos agrupada por día, con «Cargar más» por cursor. */
-export function TransactionList({ locale, initial, query, accounts, categories }: Props) {
+export function TransactionList({ locale, today, initial, query, accounts, categories }: Props) {
   const [items, setItems] = useState(initial.data);
   const [cursor, setCursor] = useState(initial.nextCursor);
   const [loading, setLoading] = useState(false);
@@ -92,6 +95,14 @@ export function TransactionList({ locale, initial, query, accounts, categories }
                           : ''}
                       </p>
                       <div className="mt-1 flex flex-wrap gap-1">
+                        {compareLocalDates(tx.transactionDate, today) > 0 ? (
+                          <Badge
+                            tone="accent"
+                            title="Fecha posterior a hoy: no afecta el saldo de hoy"
+                          >
+                            Programado
+                          </Badge>
+                        ) : null}
                         {tx.status === 'pending' ? <Badge tone="warning">Pendiente</Badge> : null}
                         {tx.original.currency !== tx.amount.currency ? (
                           <Badge title="Monto original del comercio">

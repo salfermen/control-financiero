@@ -10,4 +10,7 @@ export * from './schemas/money.js';
 export * from './schemas/accounts.js';
 export * from './schemas/transactions.js';
 export * from './schemas/fx.js';
+export * from './schemas/categories.js';
+export * from './schemas/budgets.js';
+export * from './schemas/summary.js';
 export * from './zod-issues.js';

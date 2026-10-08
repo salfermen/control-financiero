@@ -3,6 +3,7 @@ import { type DatabaseHandle, transactions } from '@cf/db';
 import { computeCashFlow, monthRange, yearMonthOf } from '@cf/domain';
 import type { CashFlowDto } from '@cf/shared';
 import { and, eq, gte, isNull, lte } from 'drizzle-orm';
+import { AppError } from '../common/errors/app-error.js';
 import { DATABASE } from '../database/database.module.js';
 import { FinanceContextService } from '../finance/finance-context.service.js';
 
@@ -36,7 +37,11 @@ export class CashFlowService {
       period,
       baseCurrency: context.baseCurrency,
       includePending,
+      asOf: context.today,
     });
+    // Con `asOf` el motor siempre separa la parte programada.
+    const { scheduled } = flow;
+    if (!scheduled) throw new AppError('INTERNAL_ERROR', undefined, 'flujo sin parte programada');
     return {
       period: { from: flow.period.from, to: flow.period.to },
       baseCurrency: flow.baseCurrency,
@@ -56,6 +61,12 @@ export class CashFlowService {
         net: category.net.toJSON(),
         count: category.count,
       })),
+      scheduled: {
+        asOf: scheduled.asOf,
+        income: scheduled.income.toJSON(),
+        netExpenses: scheduled.netExpenses.toJSON(),
+        count: scheduled.count,
+      },
       counted: { ...flow.counted },
       excluded: { ...flow.excluded },
     };

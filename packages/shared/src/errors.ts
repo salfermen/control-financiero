@@ -25,6 +25,9 @@ export const ERROR_CODES = [
   'TRANSACTION_BEFORE_OPENING_BALANCE',
   'EXCHANGE_RATE_UNAVAILABLE',
   'RULE_VIOLATION',
+  'CATEGORY_NAME_TAKEN',
+  'CATEGORY_IN_USE',
+  'BUDGET_EXISTS',
   'PAYLOAD_TOO_LARGE',
   'RATE_LIMITED',
   'SERVICE_UNAVAILABLE',
@@ -53,6 +56,9 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   TRANSACTION_BEFORE_OPENING_BALANCE: 422,
   EXCHANGE_RATE_UNAVAILABLE: 422,
   RULE_VIOLATION: 422,
+  CATEGORY_NAME_TAKEN: 409,
+  CATEGORY_IN_USE: 409,
+  BUDGET_EXISTS: 409,
   PAYLOAD_TOO_LARGE: 413,
   RATE_LIMITED: 429,
   SERVICE_UNAVAILABLE: 503,
@@ -97,8 +103,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, Record<SupportedLanguage, string>
     en: 'An account with that email already exists.',
   },
   BASE_CURRENCY_LOCKED: {
-    es: 'No puedes cambiar la moneda base porque ya tienes movimientos registrados.',
-    en: 'You cannot change the base currency because you already have transactions.',
+    es: 'No puedes cambiar la moneda base porque ya tienes movimientos o presupuestos registrados.',
+    en: 'You cannot change the base currency because you already have transactions or budgets.',
   },
   ACCOUNT_CLOSED: {
     es: 'Esa cuenta está cerrada. Reábrela para registrar movimientos.',
@@ -127,6 +133,18 @@ export const ERROR_MESSAGES: Record<ErrorCode, Record<SupportedLanguage, string>
   RULE_VIOLATION: {
     es: 'La operación no cumple las reglas de los movimientos. Revisa los datos marcados.',
     en: 'The operation does not follow the transaction rules. Please review the marked fields.',
+  },
+  CATEGORY_NAME_TAKEN: {
+    es: 'Ya tienes una categoría con ese nombre. Elige otro.',
+    en: 'You already have a category with that name. Choose another one.',
+  },
+  CATEGORY_IN_USE: {
+    es: 'La categoría está en uso. Mueve primero sus movimientos a otra categoría y quita sus presupuestos y subcategorías.',
+    en: 'The category is in use. First move its transactions to another category and remove its budgets and subcategories.',
+  },
+  BUDGET_EXISTS: {
+    es: 'Ya tienes un presupuesto para esa categoría en ese mes. Edítalo en lugar de crear otro.',
+    en: 'You already have a budget for that category in that month. Edit it instead of creating another one.',
   },
   PAYLOAD_TOO_LARGE: {
     es: 'La información enviada es demasiado grande.',

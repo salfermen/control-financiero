@@ -67,11 +67,25 @@ export type UpdateAccountRequest = z.input<typeof updateAccountRequestSchema>;
 export const accountBalanceDtoSchema = z.object({
   /** Fecha de corte: «hoy» en la zona horaria del usuario. */
   asOf: z.string(),
+  /**
+   * Fecha en que empieza la cuenta si su saldo inicial es posterior a hoy: hoy
+   * no tiene saldo y su saldo inicial cuenta como programado. `null` si ya empezó.
+   */
+  startsOn: z.string().nullable(),
   posted: moneyDtoSchema,
   pending: moneyDtoSchema,
+  /** Saldo de hoy (asentado + pendiente). En tarjetas y préstamos: lo que se debe. */
   current: moneyDtoSchema,
-  /** Movimientos incluidos (asentados + pendientes). */
+  /** Efecto neto de lo programado: movimientos con fecha posterior a hoy. */
+  scheduled: moneyDtoSchema,
+  /** `current + scheduled`: lo que quedará después de lo programado. */
+  projected: moneyDtoSchema,
+  /** Fecha del último movimiento programado; `null` si no hay. */
+  projectedThrough: z.string().nullable(),
+  /** Movimientos incluidos hasta hoy (asentados + pendientes). */
   transactionCount: z.number().int().min(0),
+  /** Movimientos con fecha posterior a hoy. */
+  scheduledCount: z.number().int().min(0),
   /** Movimientos anteriores al saldo inicial: no se suman (ya están en él). */
   excludedBeforeOpening: z.number().int().min(0),
 });

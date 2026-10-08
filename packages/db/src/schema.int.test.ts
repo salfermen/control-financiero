@@ -8,6 +8,7 @@ import type { DatabaseHandle } from './client.js';
 import {
   accounts,
   auditLogs,
+  budgets,
   categories,
   currencies,
   exchangeRates,
@@ -143,11 +144,19 @@ describe('usuarios y sesiones', () => {
     const user = await createUser();
     const account = await createAccount(user.id);
     await handle.db.insert(transactions).values(expense(user.id, account.id));
-    await handle.db
+    const [pets] = await handle.db
       .insert(categories)
-      .values({ userId: user.id, kind: 'expense', name: 'Mascotas' });
+      .values({ userId: user.id, kind: 'expense', name: 'Mascotas' })
+      .returning();
+    await handle.db.insert(budgets).values({
+      userId: user.id,
+      categoryId: pets?.id ?? null,
+      amount: '100000',
+      currency: 'COP',
+      validFrom: '2026-10-01',
+    });
     await handle.db.delete(users).where(eq(users.id, user.id));
-    for (const table of [accounts, transactions, userSettings]) {
+    for (const table of [accounts, transactions, userSettings, budgets]) {
       const [row] = await handle.db.select({ n: sql<number>`count(*)::int` }).from(table);
       expect(row?.n).toBe(0);
     }
@@ -499,6 +508,80 @@ describe('categorías', () => {
     await handle.db
       .insert(categories)
       .values({ userId: user.id, kind: 'expense', name: 'Mascotas' });
+  });
+});
+
+describe('presupuestos', () => {
+  async function systemCategory(key: string) {
+    const [row] = await handle.db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.systemKey, key));
+    if (!row) throw new Error(`falta la categoría ${key}`);
+    return row.id;
+  }
+  const insertBudget = (values: Partial<typeof budgets.$inferInsert> & { userId: string }) =>
+    handle.db
+      .insert(budgets)
+      .values({ amount: '300000', currency: 'COP', validFrom: '2026-10-01', ...values })
+      .returning();
+
+  it('exige monto positivo y meses completos', async () => {
+    const user = await createUser();
+    expect((await pgError(insertBudget({ userId: user.id, amount: '0' }))).constraint).toBe(
+      'budgets_amount_positive',
+    );
+    expect(
+      (await pgError(insertBudget({ userId: user.id, validFrom: '2026-10-02' }))).constraint,
+    ).toBe('budgets_valid_from_month_start');
+    expect(
+      (await pgError(insertBudget({ userId: user.id, validTo: '2026-10-30' }))).constraint,
+    ).toBe('budgets_valid_to_month_end');
+    expect(
+      (
+        await pgError(
+          insertBudget({ userId: user.id, validFrom: '2026-11-01', validTo: '2026-10-31' }),
+        )
+      ).constraint,
+    ).toBe('budgets_valid_range');
+    // Fin de febrero bisiesto es fin de mes válido.
+    await insertBudget({ userId: user.id, validFrom: '2028-02-01', validTo: '2028-02-29' });
+  });
+
+  it('no admite dos versiones vigentes que se solapen para la misma categoría', async () => {
+    const user = await createUser();
+    const food = await systemCategory('food');
+    const [first] = await insertBudget({ userId: user.id, categoryId: food });
+    const overlap = await pgError(
+      insertBudget({ userId: user.id, categoryId: food, validFrom: '2027-01-01' }),
+    );
+    expect(overlap).toMatchObject({ code: '23P01', constraint: 'budgets_no_overlap' });
+
+    // Cerrar la versión anterior permite abrir la siguiente desde el mes siguiente.
+    await handle.db
+      .update(budgets)
+      .set({ validTo: '2026-12-31' })
+      .where(eq(budgets.id, first?.id ?? ''));
+    await insertBudget({ userId: user.id, categoryId: food, validFrom: '2027-01-01' });
+
+    // Global y por categoría conviven; otro usuario tampoco choca.
+    await insertBudget({ userId: user.id, categoryId: null });
+    expect(
+      (await pgError(insertBudget({ userId: user.id, categoryId: null, validFrom: '2026-12-01' })))
+        .code,
+    ).toBe('23P01');
+    const other = await createUser();
+    await insertBudget({ userId: other.id, categoryId: food });
+  });
+
+  it('una versión borrada no bloquea una nueva', async () => {
+    const user = await createUser();
+    const [first] = await insertBudget({ userId: user.id });
+    await handle.db
+      .update(budgets)
+      .set({ deletedAt: new Date() })
+      .where(eq(budgets.id, first?.id ?? ''));
+    await insertBudget({ userId: user.id });
   });
 });
 

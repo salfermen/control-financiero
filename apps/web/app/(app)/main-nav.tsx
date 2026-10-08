@@ -7,6 +7,8 @@ const LINKS = [
   { href: '/inicio', label: 'Inicio' },
   { href: '/cuentas', label: 'Cuentas' },
   { href: '/movimientos', label: 'Movimientos' },
+  { href: '/presupuestos', label: 'Presupuestos' },
+  { href: '/categorias', label: 'Categorías' },
 ] as const;
 
 export function MainNav() {
@@ -16,7 +18,7 @@ export function MainNav() {
       aria-label="Principal"
       className="order-last w-full overflow-x-auto sm:order-none sm:w-auto"
     >
-      <ul className="flex gap-1">
+      <ul className="flex flex-wrap gap-1">
         {LINKS.map((link) => {
           const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
           return (

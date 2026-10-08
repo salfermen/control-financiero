@@ -27,9 +27,10 @@ PostgreSQL (probado en 16; el entorno local y la CI usan 17) con Drizzle ORM. El
 | `audit_logs`     | Eventos de seguridad y cambios. Solo inserción (trigger bloquea UPDATE).                                     |
 | `currencies`     | 14 monedas ISO 4217 con decimales oficiales y de visualización.                                              |
 | `categories`     | Categorías del sistema (23, con `system_key`) y del usuario; jerarquía de un nivel.                          |
-| `exchange_rates` | Histórico de tasas por fuente y fecha. Solo inserción. Aún sin proveedor (F4).                               |
+| `exchange_rates` | Histórico de tasas por fuente y fecha. Solo inserción. TRM oficial desde F4.                                 |
 | `accounts`       | Cuentas de activo y pasivo. El saldo no se guarda: se calcula desde el libro.                                |
 | `transactions`   | Libro único de movimientos (ingresos y gastos son tipos, no tablas).                                         |
+| `budgets`        | Presupuestos mensuales con vigencia (`valid_from`/`valid_to`): global o por categoría. Migración 0003.       |
 
 Esquema de pg-boss: `pgboss` (lo gestiona el worker, separado del negocio).
 
@@ -49,6 +50,7 @@ Estas reglas no dependen del código; la base rechaza los datos que las violan y
 - `posted_date >= transaction_date`; las fechas inexistentes (29 de febrero en año no bisiesto) se rechazan.
 - Tasas positivas, entre monedas distintas, únicas por fuente/par/fecha e inmutables.
 - Correo en minúsculas; categorías del sistema xor del usuario; nombre de categoría único por usuario entre las no borradas.
+- Presupuestos (migración 0003): monto positivo; `valid_from` es primer día de mes y `valid_to` último día de mes (o NULL); y una restricción de exclusión (`budgets_no_overlap`, extensión `btree_gist`) impide dos versiones vigentes que se solapen para el mismo usuario y categoría (el global usa el UUID nulo como clave). `btree_gist` es una extensión «trusted»: la crea el dueño de la base sin superusuario.
 
 ## Flujo de migraciones
 
@@ -57,7 +59,7 @@ Estas reglas no dependen del código; la base rechaza los datos que las violan y
 3. Revisa el SQL generado y versiona el archivo y `meta/`.
 4. `pnpm db:migrate` lo aplica (también lo hace `db:setup`).
 
-Para SQL que Drizzle no genera (triggers, funciones): `pnpm --filter @cf/db exec drizzle-kit generate --custom --name nombre` y escribe el SQL a mano (ver `0001_audit_logs_append_only.sql`).
+Para SQL que Drizzle no genera (triggers, funciones, restricciones de exclusión): `pnpm --filter @cf/db exec drizzle-kit generate --custom --name nombre` y escribe el SQL a mano (ver `0001_audit_logs_append_only.sql`), o añádelo al final de la migración generada de la misma fase (como `budgets_no_overlap` en `0003_budgets.sql`).
 
 La CI regenera las migraciones y falla si el esquema cambió sin migración. En producción las migraciones se aplican con `node packages/db/dist/cli.js migrate` (no necesita drizzle-kit). Nunca se modifica producción a mano.
 
@@ -71,8 +73,8 @@ Se crean con la migración de su fase, no antes:
 
 | Fase | Tablas                                                                                                                          |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------- |
-| F4   | `account_balance_snapshots`, `category_rules`                                                                                   |
-| F5   | `recurring_rules`, `budgets`, `budget_lines`, `imports`, `import_rows`                                                          |
+| F5b  | `recurring_rules`                                                                                                               |
+| F5c  | `account_balance_snapshots`, `category_rules`, `imports`, `import_rows`                                                         |
 | F6   | `debts`, `debt_payments`, `credit_card_details`, `credit_card_statements`, `goals`, `goal_contributions`, `net_worth_snapshots` |
 | F7   | `forecasts`, `forecast_points`, `simulations`, `recommendations`                                                                |
 | F8   | `instruments`, `market_prices`, `investment_transactions`                                                                       |

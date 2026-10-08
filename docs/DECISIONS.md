@@ -95,3 +95,28 @@ Los tipos de cuenta y de movimiento, direcciones, estados, métodos de pago, or�
 - Las páginas leen con Server Components (`serverApi`), que reenvían la cookie a la API: sin estados intermedios con datos a medias y con el contrato validado.
 - Los formularios escriben con `apiRequest` y refrescan la ruta.
 - Consecuencia: las lecturas del servidor llegan a la API desde la IP del servidor web. En producción el proxy inverso debe fijar `X-Forwarded-For` (ver DEPLOYMENT). En las E2E se sube `RATE_LIMIT_MAX` porque toda la suite comparte esa IP.
+
+## D17 — Hoy y lo programado (7 oct 2026)
+
+- **Contexto.** Al registrar el sueldo como saldo inicial del día de pago y sus gastos con fechas futuras, la cuenta mostraba el saldo a la fecha del saldo inicial (sin los gastos del día siguiente) y no había forma de ver «cuánto me queda».
+- **Decisión.** Un movimiento con fecha posterior a hoy es _programado_: nunca entra en el saldo de hoy y se informa aparte (`scheduled`); `projected = current + scheduled` es lo que quedará. Una cuenta cuyo saldo inicial es futuro (`startsOn`) no tiene saldo hoy (0) y su saldo inicial cuenta como programado. El motor ya no rechaza fechas de corte anteriores al saldo inicial.
+- **Horizonte.** Cada cuenta proyecta todo lo registrado (con la fecha del último movimiento); el tablero proyecta hasta fin de mes y cuenta aparte lo posterior. Las recurrencias (F5b) añadirán movimientos estimados distinguibles de los registrados.
+
+## D18 — Presupuestos con vigencia (7 oct 2026)
+
+- Mensuales, en la moneda base, globales o por categoría de gasto con sus subcategorías. Cuentan gastos + comisiones − reembolsos con el monto base del día de cada movimiento; pendientes sí, anulados y borrados no.
+- El nivel de alerta (75 %, 90 %, 100 %) usa lo comprometido (gastado + programado): avisar antes es más seguro. El ritmo (`pace`) extrapola lo gastado hasta hoy desde el día 7 del período; es una estimación, se presenta como tal y nunca baja de lo comprometido.
+- Cambiar el límite no reescribe meses pasados (§52): se cierra la versión vigente al final del mes anterior y se abre otra. La base impide versiones solapadas con una restricción de exclusión.
+- Con presupuestos, la moneda base queda bloqueada (como con movimientos).
+
+## D19 — Posición consolidada sin tasas inventadas (7 oct 2026)
+
+- Disponible = cuentas corrientes, de ahorro, efectivo y billeteras. El cupo de una tarjeta nunca es disponible (§18); las inversiones son activo pero no liquidez.
+- Las cuentas en otra moneda se convierten con la tasa que rige hoy (también su proyección). Con una tasa vencida dentro del margen de D14 el total se marca `estimated`; sin tasa o más vieja, la cuenta se lista en `unconverted` y no se suma.
+- Las cuentas marcadas «no incluir en el patrimonio» quedan fuera de todos los totales y se listan.
+
+## D20 — Categorías propias (7 oct 2026)
+
+- Dos niveles como máximo: una categoría propia puede colgar de una principal (del sistema o propia) del mismo tipo. El tipo no cambia después de creada.
+- Nombres únicos por tipo sin distinguir mayúsculas, tildes ni idioma (no se puede crear «videojuegos» ni «Video games» si existe «Videojuegos»).
+- Eliminar es borrado lógico. Con movimientos se exige `moveTo` y se reasignan en la misma transacción; con subcategorías o con un presupuesto vigente desde este mes se rechaza. Las del sistema no se modifican.

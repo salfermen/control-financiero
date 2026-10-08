@@ -69,6 +69,8 @@ describe('mapError', () => {
     expect(mapError(Object.assign(new Error('wrap'), { cause: pg }))).toMatchObject({
       code: 'CONFLICT',
     });
+    const exclusion = Object.assign(new Error('overlap'), { code: '23P01' });
+    expect(mapError(exclusion)).toMatchObject({ code: 'CONFLICT', status: 409 });
   });
 
   it('trata la base caída como servicio no disponible', () => {

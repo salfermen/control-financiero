@@ -115,7 +115,8 @@ export function mapError(error: unknown): MappedError {
 
   // Violaciones de integridad de PostgreSQL que escaparon a la validación.
   const sqlState = pgCode(error);
-  if (sqlState === '23505') {
+  // Única (23505) o de exclusión (23P01, p. ej. presupuestos solapados).
+  if (sqlState === '23505' || sqlState === '23P01') {
     return { code: 'CONFLICT', status: 409, unexpected: false };
   }
   if (sqlState === '57P01' || sqlState === '08006' || sqlState === '08001') {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoryOptions, rateSourceLabel } from './labels';
+import { BUDGET_LEVELS_UI, barWidth, categoryOptions, rateSourceLabel } from './labels';
 
 describe('etiquetas', () => {
   it('nombra las fuentes de tasas', () => {
@@ -19,5 +19,18 @@ describe('etiquetas', () => {
       ['Entretenimiento', 0],
       ['Videojuegos', 1],
     ]);
+  });
+
+  it('convierte proporciones del motor en anchos de barra acotados', () => {
+    expect(barWidth('0.7667')).toBe(76.7);
+    expect(barWidth('1.0400')).toBe(100);
+    expect(barWidth('0.0000')).toBe(0);
+    expect(barWidth('-0.2000')).toBe(0);
+    expect(barWidth('no')).toBe(0);
+  });
+
+  it('cada nivel de presupuesto tiene etiqueta y color', () => {
+    expect(BUDGET_LEVELS_UI.exceeded).toMatchObject({ label: 'Superado', bar: 'bg-danger' });
+    expect(Object.keys(BUDGET_LEVELS_UI)).toEqual(['ok', 'notice', 'warning', 'exceeded']);
   });
 });

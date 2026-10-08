@@ -120,6 +120,9 @@ export default async function TransactionsPage({
         </dl>
         <p className="mt-3 text-xs text-text-muted">
           Resumen de todas tus cuentas en {flow.baseCurrency}, incluidos los pendientes.
+          {flow.scheduled.count > 0
+            ? ` Incluye ${flow.scheduled.count} movimiento(s) programado(s) con fecha posterior a hoy (gastos por ${money(flow.scheduled.netExpenses, locale)}).`
+            : ''}
           {flow.excluded.transfer + flow.excluded.payment > 0
             ? ` Las transferencias y pagos entre tus cuentas (${flow.excluded.transfer + flow.excluded.payment}) no cuentan como gasto ni ingreso.`
             : ''}
@@ -141,6 +144,7 @@ export default async function TransactionsPage({
         <TransactionList
           key={`${month}-${accountId ?? 'todas'}`}
           locale={locale}
+          today={today}
           initial={list}
           query={query.toString()}
           accounts={accounts.data.map((a) => ({ id: a.id, name: a.name }))}

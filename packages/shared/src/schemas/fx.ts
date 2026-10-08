@@ -94,6 +94,16 @@ export const cashFlowDtoSchema = z.object({
   net: moneyDtoSchema,
   savingsRate: z.string().nullable(),
   byCategory: z.array(categoryFlowDtoSchema),
+  /**
+   * Parte de los totales con fecha posterior a hoy (programada). Los totales
+   * siguen cubriendo todo el mes.
+   */
+  scheduled: z.object({
+    asOf: z.string(),
+    income: moneyDtoSchema,
+    netExpenses: moneyDtoSchema,
+    count: z.number().int().min(0),
+  }),
   counted: z.object({
     income: z.number().int(),
     expense: z.number().int(),

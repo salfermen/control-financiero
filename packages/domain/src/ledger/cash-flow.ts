@@ -1,4 +1,5 @@
 import { type DateRange, createDateRange, isWithinRange } from '../dates/date-range.js';
+import { assertLocalDate, compareLocalDates, type LocalDate } from '../dates/local-date.js';
 import { DomainError } from '../errors.js';
 import { Money, assertSupportedCurrency } from '../money/money.js';
 import type { TransactionType } from './constants.js';
@@ -15,6 +16,21 @@ export interface CashFlowOptions {
    * cuántos pendientes hubo.
    */
   readonly includePending: boolean;
+  /**
+   * «Hoy» del usuario. Si se da, el resultado separa en `scheduled` la parte
+   * del período con fecha posterior (programada). Los totales siguen cubriendo
+   * todo el período.
+   */
+  readonly asOf?: LocalDate;
+}
+
+/** Parte programada del período: movimientos con fecha posterior a `asOf`. */
+export interface ScheduledFlow {
+  readonly asOf: LocalDate;
+  readonly income: Money;
+  /** Gastos + comisiones − reembolsos programados. */
+  readonly netExpenses: Money;
+  readonly count: number;
 }
 
 export interface CategoryFlow {
@@ -48,6 +64,8 @@ export interface CashFlowSummary {
   readonly savingsRate: string | null;
   /** Ingresos primero y luego gastos; dentro de cada grupo, de mayor a menor neto. */
   readonly byCategory: readonly CategoryFlow[];
+  /** Solo si se pidió `asOf`: cuánto de los totales está programado (aún no ocurre). */
+  readonly scheduled: ScheduledFlow | null;
   readonly counted: Readonly<Record<'income' | 'expense' | 'fee' | 'refund', number>>;
   /** Lo que no entró en el cálculo y por qué. */
   readonly excluded: {
@@ -84,6 +102,7 @@ export function computeCashFlow(
   const period = createDateRange(options.period.from, options.period.to);
   const currency = options.baseCurrency;
   assertSupportedCurrency(currency);
+  const asOf = options.asOf === undefined ? null : assertLocalDate(options.asOf, 'fecha de corte');
 
   const zero = Money.zero(currency);
   let income = zero;
@@ -101,6 +120,9 @@ export function computeCashFlow(
     outsidePeriod: 0,
   };
   const categories = new Map<string, MutableCategoryFlow>();
+  let scheduledIncome = zero;
+  let scheduledExpenses = zero;
+  let scheduledCount = 0;
 
   for (const entry of entries) {
     assertValidLedgerEntry(entry);
@@ -133,6 +155,12 @@ export function computeCashFlow(
     }
 
     const amount = Money.of(entry.baseAmount, currency);
+    if (asOf !== null && compareLocalDates(entry.transactionDate, asOf) > 0) {
+      scheduledCount += 1;
+      if (entry.type === 'income') scheduledIncome = scheduledIncome.plus(amount);
+      else if (entry.type === 'refund') scheduledExpenses = scheduledExpenses.minus(amount);
+      else scheduledExpenses = scheduledExpenses.plus(amount);
+    }
     switch (entry.type) {
       case 'income':
         income = income.plus(amount);
@@ -171,6 +199,15 @@ export function computeCashFlow(
     net,
     savingsRate: income.isPositive() ? net.ratioTo(income) : null,
     byCategory: sortCategories([...categories.values()]),
+    scheduled:
+      asOf === null
+        ? null
+        : {
+            asOf,
+            income: scheduledIncome,
+            netExpenses: scheduledExpenses,
+            count: scheduledCount,
+          },
     counted,
     excluded,
   };

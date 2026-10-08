@@ -2,10 +2,11 @@
 
 Plataforma financiera personal inteligente: un centro de control para conocer, proyectar y mejorar la situación financiera de una persona. Moneda base inicial: **COP**.
 
-> **Estado actual: fases F1 a F4 completas.** Ya puedes crear tus cuentas, registrar gastos,
-> ingresos, transferencias, pagos de tarjeta y reembolsos, y ver saldos y el resumen del mes. La TRM
-> oficial se descarga sola. Presupuestos, recurrencias, importación de extractos y el tablero completo
-> llegan en F5. La aplicación nunca muestra cifras de ejemplo: todo lo que ves son tus datos.
+> **Estado actual: F1 a F4 completas y F5a lista.** Cuentas, gastos, ingresos, transferencias, pagos
+> de tarjeta y reembolsos; saldo de hoy y «te queda» después de lo programado; presupuestos
+> mensuales con alertas; categorías propias, y un tablero con disponible, deudas y patrimonio. La TRM
+> oficial se descarga sola. Recurrencias y calendario (F5b) e importación de extractos (F5c) siguen.
+> La aplicación nunca muestra cifras de ejemplo: todo lo que ves son tus datos.
 
 Las reglas de trabajo del proyecto están en [`AGENTS.md`](AGENTS.md) (instrucciones maestras) y el plan por fases en la auditoría inicial.
 
@@ -18,6 +19,9 @@ Las reglas de trabajo del proyecto están en [`AGENTS.md`](AGENTS.md) (instrucci
 | Libro único de movimientos con reglas de integridad en la base                   | Listo                                |
 | Financial Engine: `Money` exacto, tasas, fechas contables, saldos, flujo de caja | Listo                                |
 | Cuentas y movimientos (API y web): gastos, ingresos, transferencias, reembolsos  | Listo                                |
+| Saldo de hoy y después de lo programado (movimientos con fecha futura)           | Listo                                |
+| Presupuestos mensuales (global o por categoría) con alertas 75/90/100 %          | Listo                                |
+| Categorías propias y tablero de inicio (disponible, deudas, patrimonio)          | Listo                                |
 | TRM oficial (Superintendencia Financiera) descargada por el worker               | Listo (verificar con `pnpm fx:sync`) |
 | API NestJS + Fastify: errores estándar, validación Zod, OpenAPI, health checks   | Listo                                |
 | Autenticación: registro, login (cookie o bearer), logout, bloqueo progresivo     | Listo                                |
@@ -65,6 +69,9 @@ Abre <http://localhost:3000>. La documentación interactiva de la API está en <
 2. **Movimientos → Registrar movimiento**: escribe el monto como lo harías normalmente («25.000», «59,99»); debajo verás cómo se va a registrar antes de guardar.
 3. Compras en dólares: elige la moneda USD y usa la TRM del día, o escribe lo que te cobraron en pesos (lo más exacto).
 4. Transferir a tu tarjeta de crédito se registra como **pago**: baja la deuda y no cuenta como gasto (el gasto se contó al comprar).
+5. ¿Gastos que aún no ocurren (el arriendo del 30, lo que harás con el sueldo)? Regístralos con su fecha futura: no tocan el saldo de hoy y verás cuánto **te queda** después de ellos.
+6. El sueldo conviene registrarlo como **ingreso** con su fecha (aunque sea futura) en una cuenta que ya existe: así aparece en los ingresos del mes y en tu tasa de ahorro. Si lo pusiste como saldo inicial de una cuenta nueva, la app lo trata como una cuenta que «empieza» ese día.
+7. **Presupuestos**: ponle un límite al mes (global o por categoría); te avisa al 75 %, 90 % y 100 %.
 
 ### TRM oficial
 

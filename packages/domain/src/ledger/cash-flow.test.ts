@@ -194,6 +194,54 @@ describe('reglas de inclusión', () => {
   });
 });
 
+describe('parte programada del período', () => {
+  const entries = [
+    income('2900000', { transactionDate: '2026-10-30' }),
+    expense('800000', 'housing', { transactionDate: '2026-10-01' }),
+    expense('162000', 'video_games', { transactionDate: '2026-10-31' }),
+    expense('267633', 'debt_costs', { transactionDate: '2026-10-31', status: 'pending' }),
+    testEntry({
+      type: 'refund',
+      direction: 'inflow',
+      amount: '12000',
+      categoryId: 'video_games',
+      refundOfId: 'x',
+      transactionDate: '2026-10-31',
+    }),
+    testEntry({
+      type: 'transfer',
+      direction: 'outflow',
+      amount: '500000',
+      transferGroupId: 'g1',
+      transactionDate: '2026-10-30',
+    }),
+  ];
+
+  it('separa lo que todavía no ocurre sin cambiar los totales del período', () => {
+    const flow = computeCashFlow(entries, { ...october, asOf: '2026-10-07' });
+    expect(flow.netExpenses.toAmountString()).toBe('1217633.0000');
+    expect(flow.scheduled).toMatchObject({ asOf: '2026-10-07', count: 4 });
+    expect(flow.scheduled?.income.toAmountString()).toBe('2900000.0000');
+    expect(flow.scheduled?.netExpenses.toAmountString()).toBe('417633.0000');
+  });
+
+  it('sin `asOf` no hay separación', () => {
+    expect(computeCashFlow(entries, october).scheduled).toBeNull();
+  });
+
+  it('el último día del período ya no hay nada programado', () => {
+    const flow = computeCashFlow(entries, { ...october, asOf: '2026-10-31' });
+    expect(flow.scheduled?.count).toBe(0);
+    expect(flow.scheduled?.netExpenses.isZero()).toBe(true);
+  });
+
+  it('valida la fecha de corte', () => {
+    expect(code(() => computeCashFlow([], { ...october, asOf: '31/10/2026' }))).toBe(
+      'INVALID_DATE',
+    );
+  });
+});
+
 describe('propiedad: el flujo cuadra', () => {
   it('neto = ingresos − (gastos + comisiones − reembolsos) y nada se pierde', () => {
     const anyEntry = fc

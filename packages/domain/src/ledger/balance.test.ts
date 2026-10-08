@@ -38,7 +38,10 @@ describe('saldo de una cuenta de activo', () => {
     expect(balance.posted.toAmountString()).toBe('3742499.5000');
     expect(balance.pending.isZero()).toBe(true);
     expect(balance.current.equals(balance.posted)).toBe(true);
-    expect(balance.counted).toEqual({ posted: 3, pending: 0 });
+    expect(balance.counted).toEqual({ posted: 3, pending: 0, scheduled: 0 });
+    expect(balance.startsOn).toBeNull();
+    expect(balance.projected.equals(balance.current)).toBe(true);
+    expect(balance.projectedThrough).toBeNull();
   });
 
   it('informa los pendientes aparte y los suma en el saldo actual', () => {
@@ -52,21 +55,25 @@ describe('saldo de una cuenta de activo', () => {
     expect(balance.current.toAmountString()).toBe('950000.0000');
   });
 
-  it('excluye y cuenta borrados, anulados, futuros y anteriores al saldo inicial', () => {
+  it('excluye y cuenta borrados, anulados y anteriores al saldo inicial; separa los futuros', () => {
     const balance = computeAccountBalance(
       account,
       [
         testEntry({ deletedAt: new Date('2026-10-05T00:00:00Z') }),
-        testEntry({ status: 'void' }),
+        testEntry({ status: 'void', transactionDate: '2026-10-20' }),
         testEntry({ transactionDate: '2026-10-08' }),
         testEntry({ transactionDate: '2026-09-30' }),
         testEntry({ transactionDate: '2026-10-07' }),
       ],
       { asOf: '2026-10-07' },
     );
-    expect(balance.excluded).toEqual({ deleted: 1, void: 1, beforeOpening: 1, afterAsOf: 1 });
-    expect(balance.counted.posted).toBe(1);
+    expect(balance.excluded).toEqual({ deleted: 1, void: 1, beforeOpening: 1, afterProjection: 0 });
+    expect(balance.counted).toEqual({ posted: 1, pending: 0, scheduled: 1 });
     expect(balance.posted.toAmountString()).toBe('990000.0000');
+    expect(balance.current.toAmountString()).toBe('990000.0000');
+    expect(balance.scheduled.toAmountString()).toBe('-10000.0000');
+    expect(balance.projected.toAmountString()).toBe('980000.0000');
+    expect(balance.projectedThrough).toBe('2026-10-08');
   });
 
   it('incluye los movimientos del mismo día del saldo inicial y del corte', () => {
@@ -93,10 +100,14 @@ describe('saldo de una cuenta de activo', () => {
     expect(balance.current.equals(Money.of('1000000', 'COP'))).toBe(true);
   });
 
-  it('no calcula saldos antes de la fecha del saldo inicial', () => {
-    expect(code(() => computeAccountBalance(account, [], { asOf: '2026-09-30' }))).toBe(
-      'DATE_BEFORE_OPENING_BALANCE',
-    );
+  it('antes de la fecha del saldo inicial, la cuenta no tiene saldo hoy y su inicio es programado', () => {
+    const balance = computeAccountBalance(account, [], { asOf: '2026-09-30' });
+    expect(balance.startsOn).toBe('2026-10-01');
+    expect(balance.current.isZero()).toBe(true);
+    expect(balance.posted.isZero()).toBe(true);
+    expect(balance.scheduled.toAmountString()).toBe('1000000.0000');
+    expect(balance.projected.toAmountString()).toBe('1000000.0000');
+    expect(balance.projectedThrough).toBe('2026-10-01');
   });
 
   it('rechaza movimientos de otra cuenta o en otra moneda', () => {
@@ -184,6 +195,119 @@ describe('saldo de una tarjeta de crédito (pasivo)', () => {
   });
 });
 
+describe('lo programado: movimientos futuros y cuentas que empiezan después', () => {
+  // Caso real: el sueldo de octubre se registró como saldo inicial del 30 de
+  // octubre y los gastos de ese sueldo con fechas del 30 y 31.
+  const salary = testAccount({
+    id: 'acc-salary',
+    type: 'savings',
+    openingBalance: '1500000',
+    openingBalanceDate: '2026-10-30',
+  });
+  const salaryEntries = [
+    testEntry({ accountId: 'acc-salary', amount: '1000000', transactionDate: '2026-10-30' }),
+    testEntry({ accountId: 'acc-salary', amount: '267633', transactionDate: '2026-10-31' }),
+    testEntry({ accountId: 'acc-salary', amount: '162000', transactionDate: '2026-10-31' }),
+  ];
+
+  it('calcula el sueldo restante después de todo lo programado', () => {
+    const balance = computeAccountBalance(salary, salaryEntries, { asOf: '2026-10-07' });
+    expect(balance.startsOn).toBe('2026-10-30');
+    expect(balance.current.isZero()).toBe(true);
+    expect(balance.scheduled.toAmountString()).toBe('70367.0000');
+    expect(balance.projected.toAmountString()).toBe('70367.0000');
+    expect(balance.projectedThrough).toBe('2026-10-31');
+    expect(balance.counted).toEqual({ posted: 0, pending: 0, scheduled: 3 });
+  });
+
+  it('el día del inicio, el saldo de hoy y lo programado se separan', () => {
+    const balance = computeAccountBalance(salary, salaryEntries, { asOf: '2026-10-30' });
+    expect(balance.startsOn).toBeNull();
+    expect(balance.current.toAmountString()).toBe('500000.0000');
+    expect(balance.scheduled.toAmountString()).toBe('-429633.0000');
+    expect(balance.projected.toAmountString()).toBe('70367.0000');
+  });
+
+  it('cuando ya pasó todo, lo programado es cero y la proyección es el saldo', () => {
+    const balance = computeAccountBalance(salary, salaryEntries, { asOf: '2026-11-01' });
+    expect(balance.current.toAmountString()).toBe('70367.0000');
+    expect(balance.scheduled.isZero()).toBe(true);
+    expect(balance.projectedThrough).toBeNull();
+  });
+
+  it('limita la proyección a una fecha y cuenta lo que queda fuera', () => {
+    const balance = computeAccountBalance(salary, salaryEntries, {
+      asOf: '2026-10-07',
+      projectUntil: '2026-10-30',
+    });
+    expect(balance.projected.toAmountString()).toBe('500000.0000');
+    expect(balance.projectUntil).toBe('2026-10-30');
+    expect(balance.projectedThrough).toBe('2026-10-30');
+    expect(balance.excluded.afterProjection).toBe(2);
+  });
+
+  it('una cuenta que empieza después del límite no aporta nada a la proyección', () => {
+    const balance = computeAccountBalance(salary, salaryEntries, {
+      asOf: '2026-10-07',
+      projectUntil: '2026-10-29',
+    });
+    expect(balance.startsOn).toBe('2026-10-30');
+    expect(balance.projected.isZero()).toBe(true);
+    expect(balance.projectedThrough).toBeNull();
+    expect(balance.excluded.afterProjection).toBe(3);
+  });
+
+  it('los pendientes con fecha futura también son programados', () => {
+    const account = testAccount({ openingBalance: '100000', openingBalanceDate: '2026-10-01' });
+    const balance = computeAccountBalance(
+      account,
+      [testEntry({ status: 'pending', amount: '30000', transactionDate: '2026-10-15' })],
+      { asOf: '2026-10-07' },
+    );
+    expect(balance.pending.isZero()).toBe(true);
+    expect(balance.scheduled.toAmountString()).toBe('-30000.0000');
+    expect(balance.projected.toAmountString()).toBe('70000.0000');
+  });
+
+  it('en pasivos, lo programado aumenta o reduce la deuda', () => {
+    const card = testAccount({
+      id: 'acc-card',
+      type: 'credit_card',
+      openingBalance: '400000',
+      openingBalanceDate: '2026-10-01',
+    });
+    const balance = computeAccountBalance(
+      card,
+      [
+        testEntry({ accountId: 'acc-card', amount: '50000', transactionDate: '2026-10-20' }),
+        testEntry({
+          accountId: 'acc-card',
+          type: 'payment',
+          direction: 'inflow',
+          amount: '400000',
+          transferGroupId: 'g-2',
+          transactionDate: '2026-10-25',
+        }),
+      ],
+      { asOf: '2026-10-07' },
+    );
+    expect(balance.current.toAmountString()).toBe('400000.0000');
+    expect(balance.scheduled.toAmountString()).toBe('-350000.0000');
+    expect(balance.projected.toAmountString()).toBe('50000.0000');
+  });
+
+  it('rechaza un límite de proyección anterior a la fecha de corte', () => {
+    expect(
+      code(() =>
+        computeAccountBalance(salary, [], { asOf: '2026-10-07', projectUntil: '2026-10-06' }),
+      ),
+    ).toBe('INVALID_DATE_RANGE');
+    expect(
+      code(() => computeAccountBalance(salary, [], { asOf: '2026-10-07', projectUntil: 'luego' })),
+    ).toBe('INVALID_DATE');
+  });
+});
+
 describe('saldos de varias cuentas', () => {
   it('agrupa los movimientos por cuenta', () => {
     const checking = testAccount({ openingBalance: '100' });
@@ -259,8 +383,55 @@ describe('propiedad: saldo = inicial + entradas − salidas', () => {
           }
           expect(balance.current.equals(expected)).toBe(true);
           expect(balance.posted.plus(balance.pending).equals(balance.current)).toBe(true);
-          const counted = balance.counted.posted + balance.counted.pending;
+          const counted =
+            balance.counted.posted + balance.counted.pending + balance.counted.scheduled;
           const excluded = Object.values(balance.excluded).reduce((a, b) => a + b, 0);
+          expect(counted + excluded).toBe(entries.length);
+        },
+      ),
+      { numRuns: 500 },
+    );
+  });
+});
+
+describe('propiedad: la proyección hasta una fecha es el saldo de esa fecha', () => {
+  it('projected(asOf=a, hasta=b) = current(asOf=b) para cualquier a ≤ b', () => {
+    const movement = fc.record({
+      amount: positiveAmount,
+      inflow: fc.boolean(),
+      date: localDate,
+      status: fc.constantFrom('posted', 'pending', 'void'),
+    });
+    fc.assert(
+      fc.property(
+        positiveAmount,
+        localDate,
+        fc.array(movement, { maxLength: 30 }),
+        localDate,
+        localDate,
+        fc.boolean(),
+        (opening, openingDate, movements, d1, d2, liability) => {
+          const [a, b] = d1 <= d2 ? [d1, d2] : [d2, d1];
+          const account = testAccount({
+            type: liability ? 'credit_card' : 'checking',
+            openingBalance: opening,
+            openingBalanceDate: openingDate,
+          });
+          const entries = movements.map((m) =>
+            testEntry({
+              type: m.inflow ? 'income' : 'expense',
+              direction: m.inflow ? 'inflow' : 'outflow',
+              amount: m.amount,
+              transactionDate: m.date,
+              status: m.status,
+            }),
+          );
+          const early = computeAccountBalance(account, entries, { asOf: a, projectUntil: b });
+          const late = computeAccountBalance(account, entries, { asOf: b });
+          expect(early.projected.equals(late.current)).toBe(true);
+          expect(early.current.plus(early.scheduled).equals(early.projected)).toBe(true);
+          const counted = early.counted.posted + early.counted.pending + early.counted.scheduled;
+          const excluded = Object.values(early.excluded).reduce((x, y) => x + y, 0);
           expect(counted + excluded).toBe(entries.length);
         },
       ),

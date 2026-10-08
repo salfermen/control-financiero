@@ -9,8 +9,9 @@
  *   sin pérdidas y formato para la UI.
  * - Tasas: `ExchangeRate` con procedencia y `convert` en ambos sentidos.
  * - Fechas contables `YYYY-MM-DD` sin corrimientos de zona horaria.
- * - Libro: reglas de movimientos, saldos, flujo de caja, transferencias y
- *   reembolsos.
+ * - Libro: reglas de movimientos, saldos (hoy y después de lo programado),
+ *   flujo de caja, posición consolidada, transferencias y reembolsos.
+ * - Presupuestos: estado por categoría (con subcategorías), alertas y ritmo.
  *
  * La aritmética decimal interna (decimal.js) no se exporta a propósito.
  */
@@ -60,6 +61,7 @@ export {
   computeAccountBalance,
   computeAccountBalances,
   type AccountBalance,
+  type BalanceOptions,
   type LedgerAccount,
 } from './ledger/balance.js';
 export {
@@ -67,7 +69,37 @@ export {
   type CashFlowOptions,
   type CashFlowSummary,
   type CategoryFlow,
+  type ScheduledFlow,
 } from './ledger/cash-flow.js';
+export {
+  LIQUID_ACCOUNT_TYPES,
+  computeFinancialPosition,
+  positionGroup,
+  type FinancialPosition,
+  type PositionAccount,
+  type PositionConversion,
+  type PositionGroup,
+  type PositionLine,
+  type PositionOptions,
+  type PositionTotals,
+  type UnconvertedAccount,
+} from './ledger/position.js';
+export {
+  BUDGET_LEVELS,
+  BUDGET_PERIODS,
+  BUDGET_THRESHOLDS,
+  MIN_DAYS_FOR_PACE,
+  budgetLevel,
+  computeBudgetStatuses,
+  sortBudgetStatuses,
+  type BudgetDefinition,
+  type BudgetLevel,
+  type BudgetOptions,
+  type BudgetPace,
+  type BudgetPeriod,
+  type BudgetStatus,
+  type CategoryNode,
+} from './budgets/budget.js';
 export { assertValidTransferGroup, type TransferSummary } from './ledger/transfers.js';
 export { assertValidRefund, type RefundCheck } from './ledger/refunds.js';
 export {

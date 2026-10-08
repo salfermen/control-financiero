@@ -19,6 +19,11 @@ export function money(dto: MoneyDto, locale: Locale = 'es-CO'): string {
   return formatMoney(Money.of(dto.amount, dto.currency), { locale });
 }
 
+/** Valor absoluto formateado («te pasaste por $ 12.000» a partir de −12.000). */
+export function absMoney(dto: MoneyDto, locale: Locale = 'es-CO'): string {
+  return formatMoney(Money.of(dto.amount, dto.currency).abs(), { locale });
+}
+
 /** Monto con signo según el sentido del movimiento: «−$ 25.000» o «+$ 2.900.000». */
 export function signedMoney(
   dto: MoneyDto,

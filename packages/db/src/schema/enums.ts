@@ -5,6 +5,7 @@
 import {
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
+  BUDGET_PERIODS,
   CATEGORY_KINDS,
   PAYMENT_METHODS,
   RECORD_SOURCES,
@@ -42,3 +43,5 @@ export const transactionDirectionEnum = pgEnum('transaction_direction', TRANSACT
 export const transactionStatusEnum = pgEnum('transaction_status', TRANSACTION_STATUSES);
 
 export const paymentMethodEnum = pgEnum('payment_method', PAYMENT_METHODS);
+
+export const budgetPeriodEnum = pgEnum('budget_period', BUDGET_PERIODS);

@@ -62,8 +62,8 @@ export async function truncateUserData(handle: DatabaseHandle): Promise<void> {
   // Sin CASCADE: un TRUNCATE en cascada sobre `users` vaciaría también las
   // categorías del sistema (comparten tabla con las del usuario).
   await handle.db.execute(sql`
-    TRUNCATE TABLE transactions, accounts, exchange_rates, audit_logs, consents, sessions,
-      user_settings
+    TRUNCATE TABLE budgets, transactions, accounts, exchange_rates, audit_logs, consents,
+      sessions, user_settings
   `);
   await handle.db.execute(sql`DELETE FROM categories WHERE user_id IS NOT NULL`);
   await handle.db.execute(sql`DELETE FROM users`);

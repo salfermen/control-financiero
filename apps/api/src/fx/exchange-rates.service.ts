@@ -3,6 +3,7 @@ import { type DatabaseHandle, exchangeRates } from '@cf/db';
 import {
   type ExchangeRate,
   type LocalDate,
+  type RateResolution,
   createExchangeRate,
   rateVariation,
   resolveRateForDate,
@@ -84,18 +85,42 @@ export class ExchangeRatesService {
     date: LocalDate,
     executor: Executor = this.database.db,
   ): Promise<ExchangeRate | null> {
+    const resolution = await this.resolve(from, to, date, executor);
+    if (resolution.status === 'current') return resolution.rate;
+    if (resolution.status === 'stale' && resolution.daysOutdated <= MAX_RATE_STALENESS_DAYS) {
+      return resolution.rate;
+    }
+    return null;
+  }
+
+  /**
+   * Mejor tasa que rige en `date` para el par en cualquiera de los dos
+   * sentidos guardados: la vigente si existe; si no, la menos atrasada. Quien
+   * llama decide cuánto atraso acepta (la resolución lo informa).
+   */
+  async resolve(
+    from: string,
+    to: string,
+    date: LocalDate,
+    executor: Executor = this.database.db,
+  ): Promise<RateResolution> {
+    let best: RateResolution = { status: 'missing' };
     for (const [base, quote] of [
       [from, to],
       [to, from],
     ] as const) {
       const rows = await this.latestRows(base, quote, date, executor);
       const resolution = resolveRateForDate(rows.map(toDomain), date);
-      if (resolution.status === 'current') return resolution.rate;
-      if (resolution.status === 'stale' && resolution.daysOutdated <= MAX_RATE_STALENESS_DAYS) {
-        return resolution.rate;
+      if (resolution.status === 'current') return resolution;
+      if (
+        resolution.status === 'stale' &&
+        (best.status === 'missing' ||
+          (best.status === 'stale' && resolution.daysOutdated < best.daysOutdated))
+      ) {
+        best = resolution;
       }
     }
-    return null;
+    return best;
   }
 
   /** Tasa vigente para mostrar (p. ej. USD/COP en el inicio), con su variación. */

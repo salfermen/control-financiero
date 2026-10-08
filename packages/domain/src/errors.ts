@@ -41,10 +41,12 @@ export const DOMAIN_ERROR_CODES = [
   'INVALID_ACCOUNT',
   /** Un movimiento no pertenece a la cuenta que se está calculando. */
   'ACCOUNT_MISMATCH',
-  /** Se pidió un saldo anterior a la fecha del saldo inicial. */
+  /** Una fecha anterior al saldo inicial donde no se admite (p. ej. un movimiento). */
   'DATE_BEFORE_OPENING_BALANCE',
   'INVALID_TRANSFER',
   'INVALID_REFUND',
+  /** Categoría inexistente, de otro tipo, repetida o que forma un ciclo. */
+  'INVALID_CATEGORY',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];
