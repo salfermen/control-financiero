@@ -8,7 +8,8 @@
  * Las transferencias entre cuentas propias NO llevan categoría: no son ingreso
  * ni gasto (requisito §10 del prompt maestro).
  */
-export type CategoryKind = 'income' | 'expense';
+export const CATEGORY_KINDS = ['income', 'expense'] as const;
+export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
 export interface SystemCategoryDefinition {
   readonly key: string;

@@ -50,6 +50,32 @@ export default tseslint.config(
     },
   },
   {
+    // Fuente única de cálculos (§9, §58): fuera del Financial Engine nadie hace
+    // aritmética decimal propia; se usa Money y las funciones de @cf/domain.
+    files: ['**/*.{ts,tsx,mts,mjs}'],
+    ignores: ['packages/domain/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'decimal.js',
+              message:
+                'Los cálculos de dinero viven en @cf/domain (Money, convert, computeCashFlow…).',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@cf/domain/*'],
+              message: 'Importa solo desde @cf/domain (su API pública).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Archivos JS de configuración y scripts sin tipos.
     files: ['**/*.mjs', '**/*.cjs', '**/*.js'],
     ...tseslint.configs.disableTypeChecked,

@@ -22,7 +22,8 @@ Una funcionalidad está terminada cuando tiene, según corresponda: modelo de da
 
 ## Convenciones
 
-- **Dinero:** montos como `string` decimal o `Decimal`; cálculos solo en `@cf/domain` (Financial Engine, F3). ESLint prohíbe `parseFloat`.
+- **Dinero:** montos como `string` decimal (`"59.9900"`) o `Money`; todo cálculo (sumas, conversiones, saldos, flujos, redondeos para mostrar) se hace con `@cf/domain`. Nunca `number`, `parseFloat` ni `decimal.js` directo: ESLint lo impide. Si falta un cálculo, se añade al motor con sus pruebas.
+- **Motor financiero:** funciones puras; la fecha de «hoy», las tasas y los datos llegan como parámetros. Cobertura mínima del 95 % (la CI falla si baja) y pruebas basadas en propiedades para invariantes (sumas que cuadran, repartos sin pérdida).
 - **Fechas contables:** texto `YYYY-MM-DD`; nunca `new Date('2026-10-31')` para una fecha sin hora.
 - **Contratos:** cada entrada y salida de la API tiene un esquema Zod en `@cf/shared`, usado por la API, la documentación y los clientes.
 - **Errores:** lanza `AppError(code)`; nunca respondas texto libre ni detalles internos.

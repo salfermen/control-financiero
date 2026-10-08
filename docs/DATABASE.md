@@ -41,6 +41,8 @@ Estas reglas no dependen del código; la base rechaza los datos que las violan y
 - Una transferencia exige `transfer_group_id` y no lleva categoría. Ingresos, gastos, reembolsos y comisiones no pueden tener grupo de transferencia.
 - `refund_of_id` solo en reembolsos.
 - Multimoneda: si la moneda original difiere de la de la cuenta o de la base, la tasa es obligatoria y positiva, y la conversión debe registrar `fx_source` y `fx_converted_at`. Si coinciden, no hay tasa y los montos son iguales. El monto original nunca se sobrescribe.
+- Sentido de las tasas del movimiento: `account_fx_rate` = unidades de la moneda de la cuenta por 1 unidad de la moneda original; `base_fx_rate` = unidades de la moneda base por 1 unidad de la original (59,99 USD con `account_fx_rate` 4050 → 242.959,50 COP). En `exchange_rates`, `rate` = unidades de `quote_currency` por 1 de `base_currency`. Si una conversión usa dos fuentes distintas, `fx_source` las une con « + » y `fx_rate_id` queda vacío.
+- Estas reglas existen dos veces a propósito: como `CHECK` en la base y en `assertValidLedgerEntry` del Financial Engine (para dar errores claros antes de escribir). `engine.int.test.ts` verifica que ambos coinciden.
 - FK compuesta `(account_id, user_id, account_currency)` → `accounts(id, user_id, currency)`: un movimiento no puede apuntar a la cuenta de otro usuario ni usar otra moneda que la de su cuenta. Además impide cambiar la moneda de una cuenta con movimientos.
 - No se puede borrar físicamente una cuenta con historial.
 - `posted_date >= transaction_date`; las fechas inexistentes (29 de febrero en año no bisiesto) se rechazan.

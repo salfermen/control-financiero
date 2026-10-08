@@ -1,3 +1,18 @@
+/**
+ * Enums de PostgreSQL. Los del libro se generan desde las listas de @cf/domain
+ * (fuente única): el motor y la base nunca pueden discrepar.
+ */
+import {
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  CATEGORY_KINDS,
+  PAYMENT_METHODS,
+  RECORD_SOURCES,
+  SYNC_STATUSES,
+  TRANSACTION_DIRECTIONS,
+  TRANSACTION_STATUSES,
+  TRANSACTION_TYPES,
+} from '@cf/domain';
 import { pgEnum } from 'drizzle-orm/pg-core';
 
 export const userStatusEnum = pgEnum('user_status', ['active', 'pending_deletion', 'disabled']);
@@ -10,53 +25,20 @@ export const consentTypeEnum = pgEnum('consent_type', ['terms_of_service', 'priv
 
 export const actorTypeEnum = pgEnum('actor_type', ['user', 'system']);
 
-export const categoryKindEnum = pgEnum('category_kind', ['income', 'expense']);
+export const categoryKindEnum = pgEnum('category_kind', CATEGORY_KINDS);
 
-export const accountTypeEnum = pgEnum('account_type', [
-  'checking',
-  'savings',
-  'cash',
-  'digital_wallet',
-  'investment',
-  'credit_card',
-  'loan',
-]);
+export const accountTypeEnum = pgEnum('account_type', ACCOUNT_TYPES);
 
-export const accountStatusEnum = pgEnum('account_status', ['active', 'closed']);
+export const accountStatusEnum = pgEnum('account_status', ACCOUNT_STATUSES);
 
-/** Origen de un registro: lo distingue de datos sincronizados o generados. */
-export const recordSourceEnum = pgEnum('record_source', [
-  'manual',
-  'import',
-  'bank',
-  'recurring',
-  'rule',
-]);
+export const recordSourceEnum = pgEnum('record_source', RECORD_SOURCES);
 
-export const syncStatusEnum = pgEnum('sync_status', ['synced', 'pending', 'error']);
+export const syncStatusEnum = pgEnum('sync_status', SYNC_STATUSES);
 
-export const transactionTypeEnum = pgEnum('transaction_type', [
-  'income',
-  'expense',
-  'transfer',
-  'refund',
-  'payment',
-  'fee',
-  'investment',
-]);
+export const transactionTypeEnum = pgEnum('transaction_type', TRANSACTION_TYPES);
 
-export const transactionDirectionEnum = pgEnum('transaction_direction', ['inflow', 'outflow']);
+export const transactionDirectionEnum = pgEnum('transaction_direction', TRANSACTION_DIRECTIONS);
 
-export const transactionStatusEnum = pgEnum('transaction_status', ['pending', 'posted', 'void']);
+export const transactionStatusEnum = pgEnum('transaction_status', TRANSACTION_STATUSES);
 
-export const paymentMethodEnum = pgEnum('payment_method', [
-  'cash',
-  'debit_card',
-  'credit_card',
-  'bank_transfer',
-  'digital_wallet',
-  'other',
-]);
-
-/** Tipos de cuenta que representan una obligación (pasivo), no dinero disponible. */
-export const LIABILITY_ACCOUNT_TYPES = ['credit_card', 'loan'] as const;
+export const paymentMethodEnum = pgEnum('payment_method', PAYMENT_METHODS);

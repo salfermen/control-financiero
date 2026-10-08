@@ -12,23 +12,40 @@ Monolito modular en TypeScript. Una API, una web y un worker comparten paquetes 
                           Servicios de caso de uso (por módulo)
                            │                    │
               Financial Engine (@cf/domain)   Repositorios (@cf/db, Drizzle)
-              puro, sin IO — desde F3                   │
+              puro, sin IO                              │
                                                    PostgreSQL ◄── Worker (pg-boss)
 ```
 
 ## Paquetes
 
-| Paquete      | Responsabilidad                                                                                                            | Depende de                    |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `@cf/domain` | Dominio puro: monedas ISO 4217, categorías del sistema. Desde F3: `Money`, conversiones, saldos, proyecciones.             | —                             |
-| `@cf/shared` | Contratos entre API y clientes: esquemas Zod de entrada y salida, códigos y mensajes de error (es/en).                     | `domain`, `zod`               |
-| `@cf/db`     | Única puerta a PostgreSQL: esquema, migraciones, cliente, siembra, mantenimiento, utilidades de prueba (`@cf/db/testing`). | `domain`, `drizzle-orm`, `pg` |
-| `@cf/api`    | API REST versionada (`/api/v1`).                                                                                           | `db`, `domain`, `shared`      |
-| `@cf/worker` | Trabajos programados en el esquema `pgboss`.                                                                               | `db`                          |
-| `@cf/web`    | Interfaz web. Nunca calcula dinero: solo muestra lo que devuelve la API.                                                   | `shared`                      |
-| `@cf/e2e`    | Pruebas de extremo a extremo.                                                                                              | `db`                          |
+| Paquete      | Responsabilidad                                                                                                                  | Depende de                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `@cf/domain` | Dominio puro y Financial Engine: monedas, categorías, `Money`, tasas, fechas contables, reglas del libro, saldos, flujo de caja. | `decimal.js`                  |
+| `@cf/shared` | Contratos entre API y clientes: esquemas Zod de entrada y salida, códigos y mensajes de error (es/en).                           | `domain`, `zod`               |
+| `@cf/db`     | Única puerta a PostgreSQL: esquema, migraciones, cliente, siembra, mantenimiento, utilidades de prueba (`@cf/db/testing`).       | `domain`, `drizzle-orm`, `pg` |
+| `@cf/api`    | API REST versionada (`/api/v1`).                                                                                                 | `db`, `domain`, `shared`      |
+| `@cf/worker` | Trabajos programados en el esquema `pgboss`.                                                                                     | `db`                          |
+| `@cf/web`    | Interfaz web. Nunca calcula dinero: muestra lo que devuelve la API (y, desde F4, lo formatea con `formatMoney`).                 | `shared`                      |
+| `@cf/e2e`    | Pruebas de extremo a extremo.                                                                                                    | `db`                          |
 
 Todos los paquetes son ESM (`"type": "module"`), compilados con `tsc`. NestJS 12 es ESM, y un único formato evita problemas de interoperabilidad.
+
+## Financial Engine (`@cf/domain`)
+
+Fuente única de los cálculos financieros (§9 y §58 de `AGENTS.md`). Es código puro: no lee la base, no llama APIs y no conoce la hora actual; recibe todo como parámetro, así que es determinista y se prueba de forma exhaustiva. ESLint impide importar `decimal.js` fuera de este paquete.
+
+| Módulo                               | Qué resuelve                                                                                                                                                                                                   |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `money/`                             | `Money`: decimal exacto con máximo 4 decimales y rango de NUMERIC(20,4); suma/resta exactas; multiplicar, dividir y convertir con redondeo explícito; reparto sin pérdidas (cuotas); `formatMoney` para la UI. |
+| `fx/`                                | `ExchangeRate` con fuente, fecha e id; `convert` en ambos sentidos del par (el inverso por división exacta); `impliedRate` cuando el extracto trae el valor real.                                              |
+| `dates/`                             | Fechas contables `YYYY-MM-DD` sin zona horaria: calendario real (bisiestos), suma de días y meses con ajuste a fin de mes, rangos inclusivos, fecha local de un instante en una zona IANA.                     |
+| `ledger/entry`                       | `LedgerEntry` (mismos nombres que las columnas de `transactions`) y `assertValidLedgerEntry`, espejo de los `CHECK` de la base.                                                                                |
+| `ledger/amounts`                     | `prepareLedgerAmounts`: los tres montos (original, cuenta, base) y sus tasas listos para insertar; nunca inventa una tasa.                                                                                     |
+| `ledger/balance`                     | `computeAccountBalance(s)`: saldo inicial + movimientos, con asentados y pendientes por separado y conteo de lo excluido.                                                                                      |
+| `ledger/cash-flow`                   | `computeCashFlow`: ingresos, gastos, comisiones, reembolsos, neto, tasa de ahorro y desglose por categoría en moneda base.                                                                                     |
+| `ledger/transfers`, `ledger/refunds` | Validación de las dos patas de una transferencia o pago, y de reembolsos contra el gasto original.                                                                                                             |
+
+Los errores son `DomainError` con un código estable (`CURRENCY_MISMATCH`, `MISSING_EXCHANGE_RATE`, `INVALID_LEDGER_ENTRY`…); desde F4 la API los traducirá a respuestas HTTP. Las reglas de negocio están en `docs/DECISIONS.md` (D8–D12).
 
 ## Capas dentro de la API
 
@@ -70,4 +87,4 @@ Regla de producto (§2 del prompt maestro): cada valor debe poder distinguirse c
 
 ## Qué no existe todavía
 
-Financial Engine (F3), cuentas y movimientos por API (F4), presupuestos (F5) y todo lo posterior del plan. Ver la auditoría y `docs/DECISIONS.md`.
+Cuentas, movimientos y tasas por API (F4), presupuestos y recurrencias (F5) y todo lo posterior del plan. El Financial Engine ya existe, pero todavía ninguna ruta lo usa: llega con F4. Ver la auditoría y `docs/DECISIONS.md`.

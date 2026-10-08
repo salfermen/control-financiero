@@ -2,10 +2,10 @@
 
 Plataforma financiera personal inteligente: un centro de control para conocer, proyectar y mejorar la situación financiera de una persona. Moneda base inicial: **COP**.
 
-> **Estado actual: fases F1 (fundaciones) y F2 (datos e identidad) completas.**
-> Hay infraestructura, modelo de datos, autenticación, auditoría y una web mínima de acceso.
-> **Todavía no hay módulos financieros** (cuentas, movimientos, presupuestos…): llegan desde F3.
-> La aplicación no muestra saldos ni cifras de ejemplo.
+> **Estado actual: fases F1 (fundaciones), F2 (datos e identidad) y F3 (Financial Engine) completas.**
+> Hay infraestructura, modelo de datos, autenticación, auditoría, una web mínima de acceso y el motor
+> de cálculos financieros. **Todavía no hay pantallas ni endpoints financieros** (cuentas, movimientos,
+> presupuestos…): llegan desde F4. La aplicación no muestra saldos ni cifras de ejemplo.
 
 Las reglas de trabajo del proyecto están en [`AGENTS.md`](AGENTS.md) (instrucciones maestras) y el plan por fases en la auditoría inicial.
 
@@ -16,6 +16,7 @@ Las reglas de trabajo del proyecto están en [`AGENTS.md`](AGENTS.md) (instrucci
 | Monorepo pnpm + Turborepo, TypeScript estricto, ESLint, Prettier                 | Listo                              |
 | PostgreSQL + Drizzle: esquema, migraciones versionadas, datos de referencia      | Listo                              |
 | Libro único de movimientos con reglas de integridad en la base (sin API aún)     | Listo (API en F4)                  |
+| Financial Engine: `Money` exacto, tasas, fechas contables, saldos, flujo de caja | Listo (sin API aún; F4)            |
 | API NestJS + Fastify: errores estándar, validación Zod, OpenAPI, health checks   | Listo                              |
 | Autenticación: registro, login (cookie o bearer), logout, bloqueo progresivo     | Listo                              |
 | Seguridad: Argon2id, sesiones opacas con hash, CSRF, CORS, rate limit, cabeceras | Listo                              |
@@ -90,7 +91,7 @@ apps/
   web/        Web (Next.js + Tailwind)
   worker/     Trabajos programados (pg-boss)
 packages/
-  domain/     Dominio sin IO: datos de referencia y, desde F3, el Financial Engine
+  domain/     Dominio sin IO: datos de referencia y Financial Engine (fuente única de cálculos)
   shared/     Contratos compartidos: esquemas Zod, DTOs, códigos de error
   db/         Esquema Drizzle, migraciones SQL, cliente, siembra
 e2e/          Pruebas Playwright de flujos críticos
