@@ -28,7 +28,7 @@ export function LogoutButton() {
         type="button"
         onClick={() => void logout()}
         disabled={pending}
-        className="rounded-lg border border-border px-3 py-2 text-sm font-medium disabled:opacity-60"
+        className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium disabled:opacity-60"
       >
         {pending ? 'Cerrando…' : 'Cerrar sesión'}
       </button>

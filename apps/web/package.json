@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Aplicación web (Next.js). Hoy: acceso y estructura base; la UI financiera llega desde F4.",
+  "description": "Aplicación web (Next.js): acceso, cuentas, movimientos y TRM; el resto de la UI financiera llega por fases.",
   "scripts": {
     "dev": "next dev --port 3000 --hostname localhost",
     "build": "next build",
@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cf/domain": "workspace:*",
     "@cf/shared": "workspace:*",
     "next": "16.4.0",
     "react": "19.3.0",

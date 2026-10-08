@@ -22,9 +22,13 @@ test.describe('acceso', () => {
 
     await expect(page).toHaveURL(/\/inicio$/);
     await expect(page.getByRole('heading', { name: 'Hola, Salim Prueba' })).toBeVisible();
-    await expect(page.getByText('COP', { exact: true })).toBeVisible();
-    // Regla contra datos falsos: no debe aparecer ningún saldo ni cifra monetaria.
-    await expect(page.locator('main')).not.toContainText(/\$\s?\d/);
+    await expect(
+      page.getByRole('heading', { name: 'Empieza creando tu primera cuenta' }),
+    ).toBeVisible();
+    // Regla contra datos falsos: sin movimientos, ninguna cifra distinta de cero.
+    await expect(page.locator('main')).not.toContainText(/\$\s?[1-9]/);
+    // Sin worker no hay TRM guardada: se dice, no se inventa.
+    await expect(page.getByText(/Datos temporalmente no disponibles/)).toBeVisible();
 
     // La cookie de sesión no es accesible desde JavaScript.
     const visibleToScript = await page.evaluate(() => document.cookie);

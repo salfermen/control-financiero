@@ -82,7 +82,12 @@ export default tseslint.config(
   },
   {
     // Las CLIs escriben en consola por diseño.
-    files: ['packages/db/src/cli.ts', 'apps/api/src/scripts/**/*.ts', 'e2e/reset-db.mjs'],
+    files: [
+      'packages/db/src/cli.ts',
+      'apps/api/src/scripts/**/*.ts',
+      'apps/worker/src/scripts/**/*.ts',
+      'e2e/reset-db.mjs',
+    ],
     rules: { 'no-console': 'off' },
   },
   {

@@ -23,7 +23,8 @@
     "db:setup": "turbo run build --filter=@cf/db && pnpm --filter @cf/db db:setup",
     "db:migrate": "turbo run build --filter=@cf/db && pnpm --filter @cf/db db:migrate",
     "db:seed": "turbo run build --filter=@cf/db && pnpm --filter @cf/db db:seed",
-    "db:studio": "pnpm --filter @cf/db db:studio"
+    "db:studio": "pnpm --filter @cf/db db:studio",
+    "fx:sync": "turbo run build --filter=@cf/worker && pnpm --filter @cf/worker fx:sync --"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

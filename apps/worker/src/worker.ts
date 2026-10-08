@@ -2,7 +2,7 @@ import { createDatabase, type DatabaseHandle } from '@cf/db';
 import { PgBoss } from 'pg-boss';
 import type { Logger } from 'pino';
 import type { WorkerConfig } from './config.js';
-import { JOBS, type ScheduledJob } from './jobs/registry.js';
+import { type ScheduledJob, buildJobs } from './jobs/registry.js';
 
 export interface RunningWorker {
   boss: PgBoss;
@@ -17,7 +17,7 @@ export interface RunningWorker {
 export async function startWorker(
   config: WorkerConfig,
   logger: Logger,
-  jobs: readonly ScheduledJob[] = JOBS,
+  jobs: readonly ScheduledJob[] = buildJobs(config),
 ): Promise<RunningWorker> {
   const database = createDatabase(config.DATABASE_URL, {
     maxConnections: 3,
@@ -47,6 +47,13 @@ export async function startWorker(
       }
     });
     logger.info({ job: job.name, cron: job.cron, tz: config.WORKER_TIMEZONE }, 'Job programado');
+    if (job.runOnStart) {
+      // singletonKey evita encolar dos ejecuciones si el worker se reinicia seguido.
+      await boss.send(job.name, null, {
+        singletonKey: `${job.name}:startup`,
+        singletonSeconds: 300,
+      });
+    }
   }
 
   return {

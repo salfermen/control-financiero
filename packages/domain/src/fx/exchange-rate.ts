@@ -1,4 +1,4 @@
-import { assertLocalDate, type LocalDate } from '../dates/local-date.js';
+import { assertLocalDate, compareLocalDates, type LocalDate } from '../dates/local-date.js';
 import { DomainError } from '../errors.js';
 import {
   DEFAULT_ROUNDING,
@@ -28,6 +28,8 @@ export interface ExchangeRate {
   /** Texto decimal con 10 decimales, como lo devuelve la base. */
   readonly rate: string;
   readonly rateDate: LocalDate;
+  /** Último día en que rige (p. ej. TRM de fin de semana); `null` = solo `rateDate`. */
+  readonly validUntil: LocalDate | null;
   /** Proveedor o tipo de fuente (`banrep-trm`, `manual`, `statement`…). */
   readonly source: string;
   /** Id de la fila en `exchange_rates`, si la tasa viene de ahí. */
@@ -39,6 +41,7 @@ export interface ExchangeRateInput {
   readonly quoteCurrency: string;
   readonly rate: string;
   readonly rateDate: string;
+  readonly validUntil?: string | null;
   readonly source: string;
   readonly id?: string | null;
 }
@@ -57,11 +60,20 @@ export function createExchangeRate(input: ExchangeRateInput): ExchangeRate {
   if (source.length === 0 || source.length > MAX_SOURCE_LENGTH) {
     throw new DomainError('INVALID_RATE', 'Toda tasa debe indicar su fuente (máx. 60 caracteres).');
   }
+  const rateDate = assertLocalDate(input.rateDate, 'fecha de la tasa');
+  const validUntil = input.validUntil ?? null;
+  if (validUntil !== null) {
+    assertLocalDate(validUntil, 'vigencia de la tasa');
+    if (compareLocalDates(validUntil, rateDate) < 0) {
+      throw new DomainError('INVALID_RATE', 'La vigencia termina antes de la fecha de la tasa.');
+    }
+  }
   return Object.freeze({
     baseCurrency: input.baseCurrency,
     quoteCurrency: input.quoteCurrency,
     rate: rate.toFixed(RATE_SCALE),
-    rateDate: assertLocalDate(input.rateDate, 'fecha de la tasa'),
+    rateDate,
+    validUntil,
     source,
     id: input.id ?? null,
   });

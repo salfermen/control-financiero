@@ -35,12 +35,16 @@ Todas se definen en `.env` en la raíz (plantilla: `.env.example`). API, worker 
 
 ## Worker (`apps/worker`)
 
-| Variable              | Por defecto      | Descripción                         |
-| --------------------- | ---------------- | ----------------------------------- |
-| `DATABASE_URL`        | —                | Misma base que la API.              |
-| `WORKER_TIMEZONE`     | `America/Bogota` | Zona en la que se evalúan los cron. |
-| `WORKER_QUEUE_SCHEMA` | `pgboss`         | Esquema de las colas.               |
-| `LOG_LEVEL`           | `info`           | Nivel de logs.                      |
+| Variable              | Por defecto                          | Descripción                                                                                                                                                                                                                      |
+| --------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`        | —                                    | Misma base que la API.                                                                                                                                                                                                           |
+| `WORKER_TIMEZONE`     | `America/Bogota`                     | Zona en la que se evalúan los cron.                                                                                                                                                                                              |
+| `WORKER_QUEUE_SCHEMA` | `pgboss`                             | Esquema de las colas.                                                                                                                                                                                                            |
+| `LOG_LEVEL`           | `info`                               | Nivel de logs.                                                                                                                                                                                                                   |
+| `FX_TRM_PROVIDER`     | `datos-gov-co`                       | Fuente de la TRM oficial (USD/COP): conjunto de datos abiertos de la Superintendencia Financiera en datos.gov.co, sin credenciales. `disabled` no descarga nada (las conversiones automáticas quedan sin tasa y la API lo dice). |
+| `FX_TRM_URL`          | URL pública del conjunto `32sa-8pi3` | Solo para apuntar a otra URL HTTPS compatible.                                                                                                                                                                                   |
+| `FX_TRM_APP_TOKEN`    | —                                    | Token de aplicación de datos.gov.co (opcional; sube los límites de uso). Es un secreto: va solo en `.env` y nunca se registra en logs.                                                                                           |
+| `FX_TRM_TIMEOUT_MS`   | `15000`                              | Tiempo máximo de espera por consulta (1000–60000).                                                                                                                                                                               |
 
 ## Web (`apps/web`)
 

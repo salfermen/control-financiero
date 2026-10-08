@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Trabajos programados (pg-boss sobre PostgreSQL): mantenimiento hoy; tasas, alertas y recurrencias en sus fases.",
+  "description": "Trabajos programados (pg-boss sobre PostgreSQL): mantenimiento y TRM oficial; recurrencias y alertas en sus fases.",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
@@ -11,10 +11,13 @@
     "lint": "eslint src test",
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
-    "dev": "node ../../scripts/dev-node-service.mjs"
+    "dev": "node ../../scripts/dev-node-service.mjs",
+    "fx:sync": "node dist/scripts/fx-sync.js"
   },
   "dependencies": {
     "@cf/db": "workspace:*",
+    "@cf/domain": "workspace:*",
+    "drizzle-orm": "0.45.3",
     "pg-boss": "12.37.0",
     "pino": "10.4.0",
     "zod": "4.6.5"

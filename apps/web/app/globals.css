@@ -15,6 +15,10 @@
   --accent-contrast: #ffffff;
   --danger: #b42318;
   --danger-surface: #fdecea;
+  --warning: #8a5300;
+  --warning-surface: #fdf3e1;
+  --positive: #1f7a43;
+  --accent-surface: #e3f1ec;
   --focus: #2563eb;
   color-scheme: light;
 }
@@ -31,6 +35,10 @@
     --accent-contrast: #0b1f1a;
     --danger: #f97066;
     --danger-surface: #3a1714;
+    --warning: #f5b453;
+    --warning-surface: #3a2a10;
+    --positive: #5cd08a;
+    --accent-surface: #12302a;
     --focus: #60a5fa;
     color-scheme: dark;
   }
@@ -47,6 +55,10 @@
   --accent-contrast: #0b1f1a;
   --danger: #f97066;
   --danger-surface: #3a1714;
+  --warning: #f5b453;
+  --warning-surface: #3a2a10;
+  --positive: #5cd08a;
+  --accent-surface: #12302a;
   --focus: #60a5fa;
   color-scheme: dark;
 }
@@ -62,6 +74,10 @@
   --color-accent-contrast: var(--accent-contrast);
   --color-danger: var(--danger);
   --color-danger-surface: var(--danger-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-positive: var(--positive);
+  --color-accent-surface: var(--accent-surface);
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 

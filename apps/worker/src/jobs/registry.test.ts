@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { loadWorkerConfig } from '../config.js';
-import { JOBS } from './registry.js';
+import { buildJobs } from './registry.js';
+
+const JOBS = buildJobs(loadWorkerConfig({ DATABASE_URL: 'postgresql://u:p@localhost/db' }));
 
 const CRON_5_FIELDS = /^(\S+\s+){4}\S+$/;
 
@@ -13,6 +15,19 @@ describe('registro de jobs', () => {
       expect(job.cron).toMatch(CRON_5_FIELDS);
       expect(job.description.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('jobs según la configuración', () => {
+  it('incluye la TRM por defecto y la omite si se desactiva', () => {
+    expect(JOBS.map((job) => job.name)).toEqual(['maintenance.session-cleanup', 'fx.trm-sync']);
+    const disabled = buildJobs(
+      loadWorkerConfig({
+        DATABASE_URL: 'postgresql://u:p@localhost/db',
+        FX_TRM_PROVIDER: 'disabled',
+      }),
+    );
+    expect(disabled.map((job) => job.name)).toEqual(['maintenance.session-cleanup']);
   });
 });
 

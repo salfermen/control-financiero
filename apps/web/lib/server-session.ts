@@ -1,5 +1,6 @@
 import { type SessionInfoDto, sessionInfoDtoSchema } from '@cf/shared';
 import { cookies, headers } from 'next/headers';
+import { cache } from 'react';
 
 const API_INTERNAL_URL = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
 
@@ -13,9 +14,10 @@ export class ApiUnavailableError extends Error {
 /**
  * Lee la sesión actual desde un Server Component reenviando la cookie a la API.
  * Devuelve `null` si no hay sesión válida; lanza si la API no responde (la UI
- * muestra entonces un estado de error, nunca datos inventados).
+ * muestra entonces un estado de error, nunca datos inventados). `cache` evita
+ * repetir la consulta en una misma petición (layout + página).
  */
-export async function getSession(): Promise<SessionInfoDto | null> {
+export const getSession = cache(async function getSession(): Promise<SessionInfoDto | null> {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
   if (!cookieHeader) return null;
@@ -39,4 +41,4 @@ export async function getSession(): Promise<SessionInfoDto | null> {
   if (response.status === 401) return null;
   if (!response.ok) throw new ApiUnavailableError();
   return sessionInfoDtoSchema.parse(await response.json());
-}
+});

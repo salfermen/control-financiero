@@ -2,29 +2,31 @@
 
 Plataforma financiera personal inteligente: un centro de control para conocer, proyectar y mejorar la situación financiera de una persona. Moneda base inicial: **COP**.
 
-> **Estado actual: fases F1 (fundaciones), F2 (datos e identidad) y F3 (Financial Engine) completas.**
-> Hay infraestructura, modelo de datos, autenticación, auditoría, una web mínima de acceso y el motor
-> de cálculos financieros. **Todavía no hay pantallas ni endpoints financieros** (cuentas, movimientos,
-> presupuestos…): llegan desde F4. La aplicación no muestra saldos ni cifras de ejemplo.
+> **Estado actual: fases F1 a F4 completas.** Ya puedes crear tus cuentas, registrar gastos,
+> ingresos, transferencias, pagos de tarjeta y reembolsos, y ver saldos y el resumen del mes. La TRM
+> oficial se descarga sola. Presupuestos, recurrencias, importación de extractos y el tablero completo
+> llegan en F5. La aplicación nunca muestra cifras de ejemplo: todo lo que ves son tus datos.
 
 Las reglas de trabajo del proyecto están en [`AGENTS.md`](AGENTS.md) (instrucciones maestras) y el plan por fases en la auditoría inicial.
 
 ## Qué incluye hoy
 
-| Área                                                                             | Estado                             |
-| -------------------------------------------------------------------------------- | ---------------------------------- |
-| Monorepo pnpm + Turborepo, TypeScript estricto, ESLint, Prettier                 | Listo                              |
-| PostgreSQL + Drizzle: esquema, migraciones versionadas, datos de referencia      | Listo                              |
-| Libro único de movimientos con reglas de integridad en la base (sin API aún)     | Listo (API en F4)                  |
-| Financial Engine: `Money` exacto, tasas, fechas contables, saldos, flujo de caja | Listo (sin API aún; F4)            |
-| API NestJS + Fastify: errores estándar, validación Zod, OpenAPI, health checks   | Listo                              |
-| Autenticación: registro, login (cookie o bearer), logout, bloqueo progresivo     | Listo                              |
-| Seguridad: Argon2id, sesiones opacas con hash, CSRF, CORS, rate limit, cabeceras | Listo                              |
-| Auditoría de solo inserción y logs estructurados sin secretos                    | Listo                              |
-| Worker pg-boss con limpieza diaria de sesiones                                   | Listo                              |
-| Web Next.js: ingresar, registro, inicio y cierre de sesión (claro/oscuro, móvil) | Listo (mínima)                     |
-| Pruebas: unitarias, integración con PostgreSQL real y E2E con Playwright         | Listo                              |
-| CI de GitHub Actions                                                             | Listo (`.github/workflows/ci.yml`) |
+| Área                                                                             | Estado                               |
+| -------------------------------------------------------------------------------- | ------------------------------------ |
+| Monorepo pnpm + Turborepo, TypeScript estricto, ESLint, Prettier                 | Listo                                |
+| PostgreSQL + Drizzle: esquema, migraciones versionadas, datos de referencia      | Listo                                |
+| Libro único de movimientos con reglas de integridad en la base                   | Listo                                |
+| Financial Engine: `Money` exacto, tasas, fechas contables, saldos, flujo de caja | Listo                                |
+| Cuentas y movimientos (API y web): gastos, ingresos, transferencias, reembolsos  | Listo                                |
+| TRM oficial (Superintendencia Financiera) descargada por el worker               | Listo (verificar con `pnpm fx:sync`) |
+| API NestJS + Fastify: errores estándar, validación Zod, OpenAPI, health checks   | Listo                                |
+| Autenticación: registro, login (cookie o bearer), logout, bloqueo progresivo     | Listo                                |
+| Seguridad: Argon2id, sesiones opacas con hash, CSRF, CORS, rate limit, cabeceras | Listo                                |
+| Auditoría de solo inserción y logs estructurados sin secretos                    | Listo                                |
+| Worker pg-boss con limpieza diaria de sesiones                                   | Listo                                |
+| Web Next.js: acceso, inicio, cuentas y movimientos (claro/oscuro, móvil)         | Listo                                |
+| Pruebas: unitarias, integración con PostgreSQL real y E2E con Playwright         | Listo                                |
+| CI de GitHub Actions                                                             | Listo (`.github/workflows/ci.yml`)   |
 
 ## Requisitos (Windows, macOS o Linux)
 
@@ -57,6 +59,24 @@ pnpm dev
 
 Abre <http://localhost:3000>. La documentación interactiva de la API está en <http://127.0.0.1:4000/api/docs>.
 
+### Primeros pasos en la app
+
+1. **Cuentas → Nueva cuenta**: crea tu cuenta de ahorros, efectivo, billetera o tarjeta con el saldo que tiene hoy (en tarjetas y préstamos, lo que debes).
+2. **Movimientos → Registrar movimiento**: escribe el monto como lo harías normalmente («25.000», «59,99»); debajo verás cómo se va a registrar antes de guardar.
+3. Compras en dólares: elige la moneda USD y usa la TRM del día, o escribe lo que te cobraron en pesos (lo más exacto).
+4. Transferir a tu tarjeta de crédito se registra como **pago**: baja la deuda y no cuenta como gasto (el gasto se contó al comprar).
+
+### TRM oficial
+
+El worker (`pnpm dev` lo arranca) descarga la TRM al iniciar y tres veces al día. Para traerla a demanda o cargar histórico:
+
+```powershell
+pnpm fx:sync                          # últimos 10 días
+pnpm fx:sync --from 2025-01-01        # histórico desde una fecha
+```
+
+Si no hay conexión con datos.gov.co, el comando lo dice y no guarda nada; la app muestra «Datos temporalmente no disponibles» y te pide el valor cobrado.
+
 ## Scripts principales
 
 | Comando                        | Qué hace                                                               |
@@ -72,6 +92,7 @@ Abre <http://localhost:3000>. La documentación interactiva de la API está en <
 | `pnpm db:setup`                | Aplica migraciones y siembra datos de referencia                       |
 | `pnpm db:new-migration`        | Genera una migración a partir de cambios en el esquema                 |
 | `pnpm db:studio`               | Explorador visual de la base (Drizzle Studio)                          |
+| `pnpm fx:sync`                 | Descarga la TRM oficial a demanda (`--from`/`--to` para histórico)     |
 
 La primera vez que corras `pnpm test:e2e`, instala el navegador: `pnpm --filter @cf/e2e exec playwright install chromium`.
 
@@ -89,7 +110,7 @@ VS Code con las extensiones ESLint (`dbaeumer.vscode-eslint`), Prettier (`esbenp
 apps/
   api/        API REST (NestJS + Fastify)
   web/        Web (Next.js + Tailwind)
-  worker/     Trabajos programados (pg-boss)
+  worker/     Trabajos programados (pg-boss) e integraciones (TRM)
 packages/
   domain/     Dominio sin IO: datos de referencia y Financial Engine (fuente única de cálculos)
   shared/     Contratos compartidos: esquemas Zod, DTOs, códigos de error

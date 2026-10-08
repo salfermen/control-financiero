@@ -18,6 +18,13 @@ export const ERROR_CODES = [
   'CONFLICT',
   'EMAIL_TAKEN',
   'BASE_CURRENCY_LOCKED',
+  'ACCOUNT_CLOSED',
+  'ACCOUNT_HAS_TRANSACTIONS',
+  'TRANSACTION_HAS_REFUNDS',
+  'TRANSACTION_NOT_EDITABLE',
+  'TRANSACTION_BEFORE_OPENING_BALANCE',
+  'EXCHANGE_RATE_UNAVAILABLE',
+  'RULE_VIOLATION',
   'PAYLOAD_TOO_LARGE',
   'RATE_LIMITED',
   'SERVICE_UNAVAILABLE',
@@ -39,6 +46,13 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   CONFLICT: 409,
   EMAIL_TAKEN: 409,
   BASE_CURRENCY_LOCKED: 409,
+  ACCOUNT_CLOSED: 409,
+  ACCOUNT_HAS_TRANSACTIONS: 409,
+  TRANSACTION_HAS_REFUNDS: 409,
+  TRANSACTION_NOT_EDITABLE: 409,
+  TRANSACTION_BEFORE_OPENING_BALANCE: 422,
+  EXCHANGE_RATE_UNAVAILABLE: 422,
+  RULE_VIOLATION: 422,
   PAYLOAD_TOO_LARGE: 413,
   RATE_LIMITED: 429,
   SERVICE_UNAVAILABLE: 503,
@@ -85,6 +99,34 @@ export const ERROR_MESSAGES: Record<ErrorCode, Record<SupportedLanguage, string>
   BASE_CURRENCY_LOCKED: {
     es: 'No puedes cambiar la moneda base porque ya tienes movimientos registrados.',
     en: 'You cannot change the base currency because you already have transactions.',
+  },
+  ACCOUNT_CLOSED: {
+    es: 'Esa cuenta está cerrada. Reábrela para registrar movimientos.',
+    en: 'That account is closed. Reopen it to record transactions.',
+  },
+  ACCOUNT_HAS_TRANSACTIONS: {
+    es: 'La cuenta tiene movimientos y no se puede eliminar. Puedes cerrarla para conservar su historial.',
+    en: 'The account has transactions and cannot be deleted. You can close it to keep its history.',
+  },
+  TRANSACTION_HAS_REFUNDS: {
+    es: 'Este gasto tiene reembolsos registrados. Elimina primero los reembolsos.',
+    en: 'This expense has refunds. Delete the refunds first.',
+  },
+  TRANSACTION_NOT_EDITABLE: {
+    es: 'Ese cambio no se puede hacer sobre este movimiento. Elimínalo y regístralo de nuevo.',
+    en: 'That change is not allowed on this transaction. Delete it and record it again.',
+  },
+  TRANSACTION_BEFORE_OPENING_BALANCE: {
+    es: 'La fecha es anterior al saldo inicial de la cuenta: ese movimiento ya está incluido en él.',
+    en: 'The date is before the account opening balance: that transaction is already included in it.',
+  },
+  EXCHANGE_RATE_UNAVAILABLE: {
+    es: 'No tenemos la tasa de cambio oficial para esa fecha. Escribe el valor que te cobraron en la moneda de la cuenta o la tasa que aplicó tu banco.',
+    en: 'We do not have the official exchange rate for that date. Enter the amount charged in the account currency or the rate your bank applied.',
+  },
+  RULE_VIOLATION: {
+    es: 'La operación no cumple las reglas de los movimientos. Revisa los datos marcados.',
+    en: 'The operation does not follow the transaction rules. Please review the marked fields.',
   },
   PAYLOAD_TOO_LARGE: {
     es: 'La información enviada es demasiado grande.',

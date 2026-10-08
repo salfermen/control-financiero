@@ -69,3 +69,29 @@ Cambiar la moneda base con movimientos existentes dejaría sus montos base incon
 ## D12 — Vocabulario del libro definido en el dominio (7 oct 2026)
 
 Los tipos de cuenta y de movimiento, direcciones, estados, métodos de pago, orígenes y tipos de categoría se definen una sola vez en `@cf/domain`, y los enums de PostgreSQL (`@cf/db`) se generan a partir de esas listas. El cambio no altera el esquema (verificado con `drizzle-kit generate`: sin migración). `LIABILITY_ACCOUNT_TYPES` se movió de `@cf/db` a `@cf/domain`.
+
+## D13 — TRM oficial desde datos abiertos del Gobierno (7 oct 2026)
+
+- **Contexto.** §7 pide tasas de un proveedor confiable, con histórico, fuente y manejo de fallos. Para USD/COP la referencia legal en Colombia es la TRM que certifica la Superintendencia Financiera.
+- **Decisión.** Proveedor `superfinanciera-trm`: conjunto de datos «Tasa de Cambio Representativa del Mercado - Histórico» (`32sa-8pi3`) de datos.gov.co, API pública sin credenciales (token de aplicación opcional). Se guarda `vigenciadesde` como `rate_date` y `vigenciahasta` como `valid_until`.
+- **Verificación pendiente.** El entorno donde se construyó el proyecto no tiene salida a datos.gov.co (bloqueo de red de la organización), así que el formato de respuesta se implementó según la documentación pública del conjunto y se probó con respuestas simuladas. La primera verificación real es `pnpm fx:sync` en el equipo de desarrollo. Si el formato difiere, el proveedor responde `invalid_response` (nunca guarda datos dudosos).
+- **Otras monedas.** Sin proveedor automático por ahora: valor cobrado o tasa escrita por la persona. Un proveedor adicional se añade implementando `ExchangeRateProvider`.
+
+## D14 — Conversión automática: vigencia, antigüedad máxima y marca de estimación (7 oct 2026)
+
+- Se usa la tasa que rige ese día (`rate_date ≤ fecha ≤ valid_until`). Si la última publicada ya no rige, se acepta hasta 5 días después (festivos y puentes); más antigua, se pide el valor cobrado o la tasa.
+- Un monto convertido con una tasa (TRM o manual) se marca `fx.estimated = true`; con el valor cobrado por el banco, `false`. La UI lo muestra («≈ estimado»).
+- En una transferencia entre monedas, la pata que llega guarda como original lo que salió y como conversión el valor recibido o la tasa: queda trazable cuánto salió, cuánto llegó y con qué tasa.
+
+## D15 — Qué se puede corregir en un movimiento (7 oct 2026)
+
+- Gastos, ingresos y comisiones: descripción, categoría, fecha, comercio, medio de pago, notas, estado y, si no hubo cambio de moneda, el monto. Con cambio de moneda, el monto no se edita: se elimina y se registra de nuevo (evita tasas incoherentes).
+- Transferencias, pagos y reembolsos: solo descripción, notas y estado (en ambas patas). Lo demás se corrige eliminando y registrando de nuevo.
+- Un gasto con reembolsos no se elimina ni puede quedar por debajo de lo reembolsado o después de sus reembolsos.
+- Borrado lógico (`deleted_at`) siempre; una transferencia se borra con sus dos patas.
+
+## D16 — Datos de la web: lectura en el servidor, escritura desde el cliente (7 oct 2026)
+
+- Las páginas leen con Server Components (`serverApi`), que reenvían la cookie a la API: sin estados intermedios con datos a medias y con el contrato validado.
+- Los formularios escriben con `apiRequest` y refrescan la ruta.
+- Consecuencia: las lecturas del servidor llegan a la API desde la IP del servidor web. En producción el proxy inverso debe fijar `X-Forwarded-For` (ver DEPLOYMENT). En las E2E se sube `RATE_LIMIT_MAX` porque toda la suite comparte esa IP.

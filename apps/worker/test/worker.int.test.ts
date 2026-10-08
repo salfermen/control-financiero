@@ -22,6 +22,8 @@ describe('worker', () => {
     const config = loadWorkerConfig({
       DATABASE_URL: getTestDatabaseUrl(),
       WORKER_QUEUE_SCHEMA: 'pgboss_test',
+      // Sin red externa en pruebas: la TRM se prueba con un proveedor simulado.
+      FX_TRM_PROVIDER: 'disabled',
     });
     worker = await startWorker(config, logger);
     const schedules = await worker.boss.getSchedules(sessionCleanupJob.name);

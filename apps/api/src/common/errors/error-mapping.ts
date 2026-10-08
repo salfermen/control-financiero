@@ -1,5 +1,11 @@
 import { HttpException } from '@nestjs/common';
-import type { ErrorCode, FieldIssue, SupportedLanguage } from '@cf/shared';
+import { type DomainErrorCode, isDomainError } from '@cf/domain';
+import {
+  ERROR_HTTP_STATUS,
+  type ErrorCode,
+  type FieldIssue,
+  type SupportedLanguage,
+} from '@cf/shared';
 import { AppError } from './app-error.js';
 
 export interface MappedError {
@@ -41,6 +47,30 @@ function pgCode(error: Record<string, unknown>): string | undefined {
 const INTERNAL: MappedError = { code: 'INTERNAL_ERROR', status: 500, unexpected: true };
 
 /**
+ * Errores del Financial Engine causados por los datos de entrada (la persona
+ * puede corregirlos). Los demás códigos del motor indican un defecto del
+ * servidor (p. ej. pasar movimientos de otra cuenta) y se tratan como 500.
+ * Los servicios suelen capturar estos errores antes y añadir el campo afectado.
+ */
+const DOMAIN_INPUT_ERRORS: Partial<Record<DomainErrorCode, ErrorCode>> = {
+  MISSING_EXCHANGE_RATE: 'EXCHANGE_RATE_UNAVAILABLE',
+  DATE_BEFORE_OPENING_BALANCE: 'TRANSACTION_BEFORE_OPENING_BALANCE',
+  INVALID_NUMBER: 'VALIDATION_ERROR',
+  TOO_MANY_DECIMALS: 'VALIDATION_ERROR',
+  INVALID_DATE: 'VALIDATION_ERROR',
+  INVALID_DATE_RANGE: 'VALIDATION_ERROR',
+  UNSUPPORTED_CURRENCY: 'VALIDATION_ERROR',
+  AMOUNT_OUT_OF_RANGE: 'RULE_VIOLATION',
+  NON_POSITIVE_AMOUNT: 'RULE_VIOLATION',
+  AMOUNT_ROUNDS_TO_ZERO: 'RULE_VIOLATION',
+  INVALID_RATE: 'RULE_VIOLATION',
+  RATE_OUT_OF_RANGE: 'RULE_VIOLATION',
+  INVALID_LEDGER_ENTRY: 'RULE_VIOLATION',
+  INVALID_TRANSFER: 'RULE_VIOLATION',
+  INVALID_REFUND: 'RULE_VIOLATION',
+};
+
+/**
  * Traduce cualquier excepción a un error de contrato. Lo desconocido se trata
  * como error interno: el cliente recibe un mensaje genérico y el detalle queda
  * solo en los logs.
@@ -53,6 +83,11 @@ export function mapError(error: unknown): MappedError {
       ...(error.issues ? { issues: error.issues } : {}),
       unexpected: false,
     };
+  }
+
+  if (isDomainError(error)) {
+    const code = DOMAIN_INPUT_ERRORS[error.code];
+    return code ? { code, status: ERROR_HTTP_STATUS[code], unexpected: false } : { ...INTERNAL };
   }
 
   if (error instanceof HttpException) {

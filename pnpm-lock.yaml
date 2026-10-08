@@ -108,6 +108,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@cf/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@cf/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -151,6 +154,12 @@ importers:
       '@cf/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@cf/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.1)
       pg-boss:
         specifier: 12.37.0
         version: 12.37.0(@opentelemetry/api@1.9.1)

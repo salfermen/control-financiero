@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { DomainError } from '@cf/domain';
 import { describe, expect, it } from 'vitest';
 import { AppError } from './app-error.js';
 import { languageFrom, mapError } from './error-mapping.js';
@@ -15,6 +16,30 @@ describe('mapError', () => {
       status: 400,
       issues: [{ path: 'email', message: 'x' }],
       unexpected: false,
+    });
+  });
+
+  it('traduce errores del Financial Engine', () => {
+    expect(mapError(new DomainError('MISSING_EXCHANGE_RATE', 'x'))).toEqual({
+      code: 'EXCHANGE_RATE_UNAVAILABLE',
+      status: 422,
+      unexpected: false,
+    });
+    expect(mapError(new DomainError('INVALID_REFUND', 'x'))).toMatchObject({
+      code: 'RULE_VIOLATION',
+      status: 422,
+    });
+    expect(mapError(new DomainError('TOO_MANY_DECIMALS', 'x'))).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      status: 400,
+    });
+    expect(mapError(new DomainError('DATE_BEFORE_OPENING_BALANCE', 'x'))).toMatchObject({
+      code: 'TRANSACTION_BEFORE_OPENING_BALANCE',
+    });
+    // Un error interno del motor es un defecto del servidor, no del usuario.
+    expect(mapError(new DomainError('ACCOUNT_MISMATCH', 'x'))).toMatchObject({
+      code: 'INTERNAL_ERROR',
+      unexpected: true,
     });
   });
 

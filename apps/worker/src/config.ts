@@ -11,6 +11,16 @@ export const workerEnvSchema = z.object({
     .string()
     .regex(/^[a-z_][a-z0-9_]*$/)
     .default('pgboss'),
+  /**
+   * Fuente de la TRM oficial. `datos-gov-co`: datos abiertos del Gobierno
+   * (Superintendencia Financiera), sin credenciales. `disabled`: no se
+   * sincroniza (las conversiones automáticas quedan sin tasa).
+   */
+  FX_TRM_PROVIDER: z.enum(['datos-gov-co', 'disabled']).default('datos-gov-co'),
+  FX_TRM_URL: z.url({ protocol: /^https$/ }).optional(),
+  /** Token de aplicación de Socrata (opcional). Nunca se registra en logs. */
+  FX_TRM_APP_TOKEN: z.string().min(1).optional(),
+  FX_TRM_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(15_000),
 });
 
 export type WorkerConfig = z.output<typeof workerEnvSchema>;

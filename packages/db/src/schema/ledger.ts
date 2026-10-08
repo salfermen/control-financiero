@@ -46,7 +46,7 @@ import { categories, currencies } from './reference.js';
  *
  * El saldo NO se guarda aquí: se calcula como saldo inicial + movimientos
  * (fuente única, §58). Las conciliaciones con el banco irán en
- * `account_balance_snapshots` (F4).
+ * `account_balance_snapshots` (F5, junto con la importación de extractos).
  */
 export const accounts = pgTable(
   'accounts',

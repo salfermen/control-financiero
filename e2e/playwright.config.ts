@@ -62,8 +62,9 @@ export default defineConfig({
         CORS_ORIGINS: `http://127.0.0.1:${webPort}`,
         IP_HASH_SECRET: process.env.IP_HASH_SECRET ?? 'secreto-e2e-con-mas-de-32-caracteres!!',
         LOG_LEVEL: 'warn',
-        // Toda la suite comparte IP: el límite de auth se sube solo aquí.
+        // Toda la suite comparte IP (la del servidor web): los límites se suben solo aquí.
         AUTH_RATE_LIMIT_MAX: '1000',
+        RATE_LIMIT_MAX: '100000',
         TRUST_PROXY: '127.0.0.1,::1',
       },
     },

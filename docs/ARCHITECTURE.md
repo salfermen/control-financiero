@@ -24,7 +24,7 @@ Monolito modular en TypeScript. Una API, una web y un worker comparten paquetes 
 | `@cf/shared` | Contratos entre API y clientes: esquemas Zod de entrada y salida, códigos y mensajes de error (es/en).                           | `domain`, `zod`               |
 | `@cf/db`     | Única puerta a PostgreSQL: esquema, migraciones, cliente, siembra, mantenimiento, utilidades de prueba (`@cf/db/testing`).       | `domain`, `drizzle-orm`, `pg` |
 | `@cf/api`    | API REST versionada (`/api/v1`).                                                                                                 | `db`, `domain`, `shared`      |
-| `@cf/worker` | Trabajos programados en el esquema `pgboss`.                                                                                     | `db`                          |
+| `@cf/worker` | Trabajos programados en el esquema `pgboss` e integraciones de datos externos (TRM oficial).                                     | `db`, `domain`                |
 | `@cf/web`    | Interfaz web. Nunca calcula dinero: muestra lo que devuelve la API (y, desde F4, lo formatea con `formatMoney`).                 | `shared`                      |
 | `@cf/e2e`    | Pruebas de extremo a extremo.                                                                                                    | `db`                          |
 
@@ -49,10 +49,10 @@ Los errores son `DomainError` con un código estable (`CURRENCY_MISMATCH`, `MISS
 
 ## Capas dentro de la API
 
-Cada dominio es un módulo Nest (`auth`, `users`, `reference`; desde F4 `accounts`, `transactions`…):
+Cada dominio es un módulo Nest (`auth`, `users`, `reference`, `accounts`, `transactions`, `fx` y `cash-flow`; `finance` comparte el contexto del usuario —moneda base, zona y «hoy»— y los mapeos a DTO):
 
 1. **Controlador**: valida la entrada con el esquema Zod compartido (`ZodPipe`) y documenta el contrato en OpenAPI con el mismo esquema.
-2. **Servicio**: orquesta el caso de uso. Hará los cálculos a través del Financial Engine, nunca por su cuenta.
+2. **Servicio**: orquesta el caso de uso. Los cálculos los hace el Financial Engine (saldos, conversiones, reglas del libro, flujo de caja), nunca el servicio por su cuenta. Antes de escribir valida cada movimiento con el motor; la base lo vuelve a verificar con sus `CHECK`.
 3. **Persistencia**: Drizzle con el esquema de `@cf/db`. Toda consulta filtra por el `user_id` del contexto autenticado.
 
 ## Capas transversales
@@ -78,13 +78,21 @@ Regla de producto (§2 del prompt maestro): cada valor debe poder distinguirse c
 
 - App Router de Next.js 16, Tailwind 4 con tokens de color para modo claro y oscuro.
 - `app/api/v1/[...path]/route.ts` reenvía las llamadas del navegador a la API (misma URL de origen: la cookie es de primera parte). La dirección de la API se lee en tiempo de ejecución (`API_INTERNAL_URL`).
-- Los Server Components leen la sesión con `getSession()` reenviando la cookie.
+- Pantallas con sesión en `app/(app)/`: Inicio (flujo del mes, TRM, cuentas), Cuentas (lista con saldo, crear, editar, cerrar, borrar) y Movimientos (mes, resumen, lista paginada, registrar gasto/ingreso/transferencia, corregir, reembolsar, eliminar).
+- Los Server Components leen con `serverApi()` (`lib/server-api.ts`), que reenvía la cookie y valida la respuesta con el esquema compartido; `getSession()` usa `cache` para no repetir la consulta en la misma petición.
+- Los formularios escriben con `apiRequest()` y luego refrescan la ruta. Los montos se escriben como en Colombia («25.000», «59,99»); `parseAmountInput` del motor los normaliza y la pantalla muestra «Se registrará: …» antes de guardar.
+- Fechas contables mostradas con `formatDate` sobre las partes de la fecha en UTC: nunca se corren un día.
 - Cada respuesta de la API se valida en el cliente con el esquema compartido: si no cumple el contrato, se muestra un error, no datos dudosos.
 
 ## Worker
 
-`apps/worker` arranca pg-boss en su propio esquema, crea las colas y programa los trabajos del registro `JOBS` en hora de Bogotá. Hoy: `maintenance.session-cleanup` (03:17 diario). Cada fase añadirá los suyos (TRM en F4, recurrencias en F5, alertas en F10).
+`apps/worker` arranca pg-boss en su propio esquema, crea las colas y programa los trabajos de `buildJobs(config)` en hora de Bogotá:
+
+- `maintenance.session-cleanup` (03:17 diario).
+- `fx.trm-sync` (08:23, 13:23 y 18:23, y una vez al arrancar): descarga la TRM oficial de los últimos 10 días y la anticipada desde el proveedor configurado y la guarda en `exchange_rates` (solo inserción; si el proveedor publica un valor distinto para una fecha ya guardada, no se sobrescribe y se avisa en los logs). `pnpm fx:sync [--from AAAA-MM-DD] [--to AAAA-MM-DD]` hace lo mismo a demanda, también para cargar histórico.
+
+Integraciones en `src/integrations/`: cada proveedor implementa `ExchangeRateProvider` (fuente estable, errores tipados `unavailable`/`rate_limited`/`invalid_response`, tiempo de espera y validación de la respuesta con Zod y con el motor). Las pruebas usan proveedores simulados explícitos; la app nunca usa datos simulados.
 
 ## Qué no existe todavía
 
-Cuentas, movimientos y tasas por API (F4), presupuestos y recurrencias (F5) y todo lo posterior del plan. El Financial Engine ya existe, pero todavía ninguna ruta lo usa: llega con F4. Ver la auditoría y `docs/DECISIONS.md`.
+Presupuestos, recurrencias, importación de extractos, conciliación de saldos (`account_balance_snapshots`) y el tablero v1 (F5); deudas, metas y patrimonio (F6), y todo lo posterior del plan. Tasas automáticas solo para USD/COP (TRM); otras monedas se registran con el valor cobrado o una tasa escrita por la persona. Ver la auditoría y `docs/DECISIONS.md`.

@@ -10,6 +10,10 @@ import { currencies } from './reference.js';
  * `rate` = unidades de `quote_currency` por 1 unidad de `base_currency`.
  * Ej.: base USD, quote COP, rate 4050 → 1 USD = 4.050 COP.
  *
+ * `valid_until` es el último día en que rige la tasa (la TRM publicada un
+ * viernes rige sábado, domingo y lunes). Si es nulo, rige solo `rate_date`.
+ * Fuera de ese rango la tasa se considera desactualizada (§12).
+ *
  * Las tasas que el usuario escribe a mano para una transacción no viven aquí:
  * se guardan en la propia transacción con `fx_source = 'manual'`.
  */
@@ -25,6 +29,7 @@ export const exchangeRates = pgTable(
       .references(() => currencies.code),
     rate: fxRate('rate').notNull(),
     rateDate: date('rate_date', { mode: 'string' }).notNull(),
+    validUntil: date('valid_until', { mode: 'string' }),
     source: varchar('source', { length: 60 }).notNull(),
     fetchedAt: instant('fetched_at').notNull(),
     createdAt: createdAt(),
@@ -32,6 +37,10 @@ export const exchangeRates = pgTable(
   (t) => [
     check('exchange_rates_positive', sql`${t.rate} > 0`),
     check('exchange_rates_distinct_pair', sql`${t.baseCurrency} <> ${t.quoteCurrency}`),
+    check(
+      'exchange_rates_validity_range',
+      sql`${t.validUntil} IS NULL OR ${t.validUntil} >= ${t.rateDate}`,
+    ),
     uniqueIndex('exchange_rates_source_pair_date_uq').on(
       t.source,
       t.baseCurrency,

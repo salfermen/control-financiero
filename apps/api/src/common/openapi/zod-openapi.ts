@@ -26,7 +26,9 @@ const ERROR_DESCRIPTIONS: Record<number, string> = {
   400: 'Datos inválidos (VALIDATION_ERROR), con detalle por campo en `issues`.',
   401: 'Sin sesión válida (UNAUTHENTICATED) o credenciales incorrectas (INVALID_CREDENTIALS).',
   403: 'Falta la cabecera anti-CSRF (CSRF_REJECTED) o no hay permiso.',
-  409: 'Conflicto con datos existentes.',
+  404: 'No existe o no pertenece al usuario (NOT_FOUND).',
+  409: 'Conflicto con datos existentes o con el estado del registro.',
+  422: 'La operación no cumple las reglas financieras (RULE_VIOLATION, EXCHANGE_RATE_UNAVAILABLE, TRANSACTION_BEFORE_OPENING_BALANCE).',
   423: 'Cuenta bloqueada temporalmente por intentos fallidos (ACCOUNT_LOCKED).',
   429: 'Demasiadas solicitudes (RATE_LIMITED).',
 };

@@ -27,7 +27,8 @@ export {
   type MoneyJson,
   type DecimalInput,
 } from './money/money.js';
-export { formatMoney, type FormatMoneyOptions } from './money/format.js';
+export { formatMoney, formatPercent, formatRate, type FormatMoneyOptions } from './money/format.js';
+export { parseAmountInput, type ParseAmountOptions } from './money/input.js';
 
 export {
   RATE_SCALE,
@@ -38,6 +39,12 @@ export {
   type ExchangeRateInput,
   type Conversion,
 } from './fx/exchange-rate.js';
+export {
+  rateVariation,
+  resolveRateForDate,
+  type RateResolution,
+  type RateVariation,
+} from './fx/rate-resolution.js';
 
 export * from './dates/local-date.js';
 export * from './dates/date-range.js';

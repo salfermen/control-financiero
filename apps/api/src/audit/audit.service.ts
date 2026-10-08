@@ -11,7 +11,13 @@ export type AuditAction =
   | 'account_locked'
   | 'logout'
   | 'logout_all'
-  | 'settings_updated';
+  | 'settings_updated'
+  | 'account_created'
+  | 'account_updated'
+  | 'account_deleted'
+  | 'transaction_created'
+  | 'transaction_updated'
+  | 'transaction_deleted';
 
 export interface AuditEntry {
   action: AuditAction;

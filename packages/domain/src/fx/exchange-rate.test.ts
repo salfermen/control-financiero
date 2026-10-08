@@ -37,6 +37,7 @@ describe('createExchangeRate', () => {
       quoteCurrency: 'COP',
       rate: '4050.0000000000',
       rateDate: '2026-10-07',
+      validUntil: null,
       source: 'banrep-trm',
       id: 'rate-1',
     });
@@ -175,5 +176,13 @@ describe('impliedRate', () => {
     expect(
       code(() => impliedRate(Money.of('9999999999999999', 'COP'), Money.of('0.0001', 'USD'))),
     ).toBe('RATE_OUT_OF_RANGE');
+  });
+});
+
+describe('vigencia de la tasa', () => {
+  it('acepta y valida la vigencia', () => {
+    expect(usdCop('4050', { validUntil: '2026-10-10' }).validUntil).toBe('2026-10-10');
+    expect(code(() => usdCop('4050', { validUntil: '2026-10-06' }))).toBe('INVALID_RATE');
+    expect(code(() => usdCop('4050', { validUntil: '2026-13-01' }))).toBe('INVALID_DATE');
   });
 });
